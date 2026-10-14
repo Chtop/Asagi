@@ -1,12 +1,14 @@
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, AppState, FlatList, Linking, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ViewToken } from "@react-native/virtualized-lists";
 
 import { fetchThread } from "@/src/api/fourchan";
 import { isBoardCode } from "@/src/api/ids";
 import { thumbnailFor } from "@/src/api/media";
 import { PostCard } from "@/src/components/PostCard";
+import { ScrollDock } from "@/src/components/ScrollDock";
 import { ErrorBanner, ErrorState, LoadingState, Screen } from "@/src/components/ui";
 import { threadTitle } from "@/src/lib/format";
 import { galleryItems } from "@/src/lib/gallery";
@@ -36,6 +38,7 @@ export default function ThreadScreen() {
 
 function ThreadBody({ board, threadId, focus }: { board: string; threadId: string; focus: string }) {
   const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite, remember, positionFor, markPosition } = useLibrary();
   const [posts, setPosts] = useState<Post[]>([]);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
@@ -371,6 +374,22 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
     allowSaveRef.current = true;
   }, []);
 
+  const jumpToTop = useCallback(() => {
+    anchorLock.current = null;
+    allowSaveRef.current = true;
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    const first = posts[0];
+    if (first) scheduleSave(first.no);
+  }, [posts, scheduleSave]);
+
+  const jumpToBottom = useCallback(() => {
+    anchorLock.current = null;
+    allowSaveRef.current = true;
+    listRef.current?.scrollToEnd({ animated: true });
+    const last = posts[posts.length - 1];
+    if (last) scheduleSave(last.no);
+  }, [posts, scheduleSave]);
+
   const onToggleFavorite = useCallback(() => {
     const source = posts[0];
     if (!source) return;
@@ -423,7 +442,7 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
               style={styles.list}
               data={posts}
               keyExtractor={(item) => String(item.no)}
-              contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }}
+              contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 76 }}
               viewabilityConfig={viewabilityConfig}
               onViewableItemsChanged={onViewableItemsChanged}
               onScrollBeginDrag={onScrollBeginDrag}
@@ -461,6 +480,12 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
                   onQuote={onQuote}
                 />
               )}
+            />
+            <ScrollDock
+              refreshing={refreshing}
+              onRefresh={() => void load("refresh")}
+              onTop={jumpToTop}
+              onBottom={jumpToBottom}
             />
           </View>
           {revealed ? null : (

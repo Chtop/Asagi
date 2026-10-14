@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchThread } from "@/src/api/fourchan";
 import { EdgeBack } from "@/src/components/EdgeBack";
 import { PostCard } from "@/src/components/PostCard";
+import { ScrollDock } from "@/src/components/ScrollDock";
 import { ErrorState, LoadingState, Screen } from "@/src/components/ui";
 import { galleryItems } from "@/src/lib/gallery";
 import type { QuoteTarget } from "@/src/lib/html";
@@ -180,6 +181,30 @@ export default function QuoteLevelScreen() {
       }`
     : "";
 
+  const onRefresh = () => {
+    if (!frame || !posts || loading) return;
+    const request = ++requestSeq.current;
+    setLoading(true);
+    fetchThread(frame.board, String(frame.threadId))
+      .then((loaded) => {
+        if (!alive.current || request !== requestSeq.current) return;
+        if (!loaded.some((post) => post.no === frame.focusId)) {
+          Alert.alert("Quote", MISSING);
+          return;
+        }
+        storeQuotePosts(level, loaded);
+        setPosts(loaded);
+      })
+      .catch((caught) => {
+        if (!alive.current || request !== requestSeq.current) return;
+        const message = caught instanceof Error ? caught.message : "Could not load this thread.";
+        Alert.alert("Quote", message);
+      })
+      .finally(() => {
+        if (alive.current && request === requestSeq.current) setLoading(false);
+      });
+  };
+
   const retry = () => {
     if (!frame || (frame.posts && frame.posts.length > 0)) return;
     const request = ++requestSeq.current;
@@ -224,7 +249,7 @@ export default function QuoteLevelScreen() {
           ref={listRef}
           data={rows}
           keyExtractor={(item) => String(item.no)}
-          contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 76 }}
           extraData={frame.focusId}
           onScrollToIndexFailed={(info) => {
             scrollTries.current += 1;
@@ -252,6 +277,14 @@ export default function QuoteLevelScreen() {
               onQuote={onQuote}
             />
           )}
+        />
+      ) : null}
+      {frame && posts ? (
+        <ScrollDock
+          refreshing={loading}
+          onRefresh={onRefresh}
+          onTop={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          onBottom={() => listRef.current?.scrollToEnd({ animated: true })}
         />
       ) : null}
       <EdgeBack onBack={goBack} />

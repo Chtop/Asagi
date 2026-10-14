@@ -1,10 +1,12 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchCatalog } from "@/src/api/fourchan";
 import { isBoardCode } from "@/src/api/ids";
 import { CatalogCard } from "@/src/components/CatalogCard";
+import { ScrollDock } from "@/src/components/ScrollDock";
 import { EmptyState, ErrorBanner, ErrorState, FilterChips, LoadingState, Screen } from "@/src/components/ui";
 import { CATALOG_SORT_OPTIONS, SORT_DIRECTION_OPTIONS, sortCatalog } from "@/src/lib/catalogSort";
 import { threadTitle } from "@/src/lib/format";
@@ -22,6 +24,8 @@ export default function CatalogScreen() {
   const board = one(params.board).toLowerCase();
   const title = htmlToPlain(one(params.title)) || `/${board}/`;
   const { palette, settings, setCatalogView } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const listRef = useRef<FlatList<Cell>>(null);
   const [threads, setThreads] = useState<Post[]>([]);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
@@ -29,6 +33,7 @@ export default function CatalogScreen() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<CatalogSort>(settings.catalogSort);
   const [direction, setDirection] = useState<SortDirection>(settings.catalogSortDirection);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const hasData = useRef(false);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -65,6 +70,7 @@ export default function CatalogScreen() {
   useEffect(() => {
     hasData.current = false;
     setQuery("");
+    setToolsOpen(false);
     setSort(settingsRef.current.catalogSort);
     setDirection(settingsRef.current.catalogSortDirection);
     void load("initial");
@@ -120,23 +126,38 @@ export default function CatalogScreen() {
         <ErrorState message={banner ?? "Unknown error."} onRetry={() => void load("initial")} />
       ) : null}
       {phase === "ready" ? (
-        <>
+        <View style={styles.body}>
           <ErrorBanner message={banner} />
           <View style={styles.tools}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Title, text, or number"
-              placeholderTextColor={palette.textMuted}
-              clearButtonMode="while-editing"
-              autoCorrect={false}
-              autoCapitalize="none"
-              style={[styles.search, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]}
-            />
-            <FilterChips options={CATALOG_SORT_OPTIONS} value={sort} onChange={setSort} />
-            <FilterChips options={SORT_DIRECTION_OPTIONS} value={direction} onChange={setDirection} />
+            <View style={styles.searchRow}>
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Title, text, or number"
+                placeholderTextColor={palette.textMuted}
+                clearButtonMode="while-editing"
+                autoCorrect={false}
+                autoCapitalize="none"
+                style={[styles.search, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={toolsOpen ? "Hide sort and order" : "Show sort and order"}
+                onPress={() => setToolsOpen((open) => !open)}
+                style={[styles.sortToggle, { borderColor: palette.border, backgroundColor: palette.surface }]}
+              >
+                <Text style={{ color: palette.accent, fontWeight: "700" }}>{toolsOpen ? "Hide" : "Sort"}</Text>
+              </Pressable>
+            </View>
+            {toolsOpen ? (
+              <View style={styles.chipBlock}>
+                <FilterChips options={CATALOG_SORT_OPTIONS} value={sort} onChange={setSort} />
+                <FilterChips options={SORT_DIRECTION_OPTIONS} value={direction} onChange={setDirection} />
+              </View>
+            ) : null}
           </View>
           <FlatList
+            ref={listRef}
             key={view}
             style={styles.list}
             data={cells}
@@ -144,7 +165,7 @@ export default function CatalogScreen() {
             numColumns={view === "list" ? 1 : 2}
             columnWrapperStyle={view === "list" ? undefined : { gap: 10, marginBottom: 10 }}
             ItemSeparatorComponent={view === "list" ? ListGap : undefined}
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 76 }]}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -178,7 +199,13 @@ export default function CatalogScreen() {
               />
             }
           />
-        </>
+          <ScrollDock
+            refreshing={refreshing}
+            onRefresh={() => void load("refresh")}
+            onTop={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            onBottom={() => listRef.current?.scrollToEnd({ animated: true })}
+          />
+        </View>
       ) : null}
     </Screen>
   );
@@ -189,14 +216,24 @@ function ListGap() {
 }
 
 const styles = StyleSheet.create({
+  body: { flex: 1 },
   list: { flex: 1 },
-  tools: { paddingHorizontal: 12, paddingTop: 12, gap: 8 },
+  tools: { paddingHorizontal: 12, paddingTop: 8, gap: 8 },
+  chipBlock: { gap: 8, paddingBottom: 8 },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   search: {
+    flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
+  },
+  sortToggle: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   content: { padding: 12, flexGrow: 1 },
   spacer: { flex: 1 },

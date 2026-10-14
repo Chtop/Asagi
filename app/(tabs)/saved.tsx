@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
 
 import { EmptyState, Screen } from "@/src/components/ui";
 import { savedFile } from "@/src/lib/disk";
@@ -18,13 +18,29 @@ function kindLabel(kind: SavedMedia["kind"]): string {
   return "IMG";
 }
 
+function sectionsFor(items: SavedMedia[]): { board: string; data: SavedMedia[] }[] {
+  const order: string[] = [];
+  const groups = new Map<string, SavedMedia[]>();
+  for (const item of items) {
+    const board = item.board || "saved";
+    const group = groups.get(board);
+    if (group) group.push(item);
+    else {
+      groups.set(board, [item]);
+      order.push(board);
+    }
+  }
+  return order.map((board) => ({ board, data: groups.get(board) ?? [] }));
+}
+
 export default function SavedMediaScreen() {
   const { palette } = useAppTheme();
   const { items, remove, share } = useSavedMedia();
+  const sections = sectionsFor(items);
 
   const openAt = (item: SavedMedia) => {
     const playable = items.flatMap((entry) => {
-      const file = savedFile(entry.filename);
+      const file = savedFile(entry.filename, entry.board);
       if (!file.exists) return [];
       const galleryItem: GalleryItem = {
         postNo: entry.postNo,
@@ -55,12 +71,18 @@ export default function SavedMediaScreen() {
 
   return (
     <Screen>
-      <FlatList
-        data={items}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={items.length === 0 ? styles.empty : undefined}
+        stickySectionHeadersEnabled
+        contentContainerStyle={items.length === 0 ? styles.empty : styles.list}
+        renderSectionHeader={({ section }) => (
+          <View style={[styles.header, { backgroundColor: palette.background }]}>
+            <Text style={[styles.headerText, { color: palette.text }]}>/{section.board}/</Text>
+          </View>
+        )}
         renderItem={({ item }) => {
-          const file = savedFile(item.filename);
+          const file = savedFile(item.filename, item.board);
           const size = formatBytes(item.bytes ?? undefined);
           return (
             <View style={[styles.row, { borderBottomColor: palette.border }]}>
@@ -118,6 +140,9 @@ export default function SavedMediaScreen() {
 
 const styles = StyleSheet.create({
   empty: { flexGrow: 1 },
+  list: { paddingBottom: 24 },
+  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
+  headerText: { fontSize: 15, fontWeight: "700" },
   row: {
     flexDirection: "row",
     alignItems: "center",

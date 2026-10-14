@@ -130,8 +130,8 @@ export default function GalleryScreen() {
         await Share.share({ url: uri });
         return;
       }
-      await saveInPhotoLibrary(uri);
-      Alert.alert("Saved", "The file is in your photo library.");
+      const album = await saveInPhotoLibrary(uri, current.board);
+      Alert.alert("Saved", `Saved in the album ${album}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not save this file.";
       if (/did not share|cancel/i.test(message)) return;
@@ -155,7 +155,7 @@ export default function GalleryScreen() {
       });
       Alert.alert(
         result === "exists" ? "Already kept" : "Kept",
-        result === "exists" ? "Already in your media." : "Kept in the app. Find it in the Media tab.",
+        result === "exists" ? "Already in your media." : `Kept in /${current.board}/. Find it in the Media tab.`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not keep this file.";

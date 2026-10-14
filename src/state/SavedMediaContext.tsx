@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { File } from "expo-file-system";
 import { Alert, Share } from "react-native";
 
-import { savedFile } from "@/src/lib/disk";
+import { placeSavedFiles, savedFile } from "@/src/lib/disk";
 import { loadSavedMedia, saveSavedMedia } from "@/src/storage/persist";
 import type { SavedMedia, SavedMediaKind } from "@/src/storage/model";
 
@@ -30,9 +30,9 @@ function safeFileName(name: string): string {
   return cleaned || "file";
 }
 
-function dropFile(id: string) {
+function dropFile(id: string, board?: string) {
   try {
-    const leftover = savedFile(id);
+    const leftover = savedFile(id, board);
     if (leftover.exists) leftover.delete();
   } catch {
     // Un fichier déjà absent ne bloque pas la liste.
@@ -49,7 +49,9 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     loadSavedMedia()
-      .then((stored) => {
+      .then(async (stored) => {
+        if (cancelled) return;
+        await placeSavedFiles(stored);
         if (cancelled) return;
         itemsRef.current = stored;
         setItems(stored);
@@ -91,15 +93,15 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
         const id = `${Date.now()}-${nonce}-${safeFileName(input.filename)}`;
         let bytes: number | null = null;
         try {
-          const file = await File.downloadFileAsync(input.url, savedFile(id), { idempotent: true });
+          const file = await File.downloadFileAsync(input.url, savedFile(id, input.board), { idempotent: true });
           bytes = Number.isFinite(file.size) ? file.size : null;
         } catch {
-          dropFile(id);
+          dropFile(id, input.board);
           throw new Error("Could not keep this file.");
         }
 
         if (itemsRef.current.some((item) => item.sourceUrl === input.url)) {
-          dropFile(id);
+          dropFile(id, input.board);
           return "exists";
         }
 
@@ -128,14 +130,15 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
 
   const remove = useCallback(
     async (id: string) => {
-      dropFile(id);
+      const current = itemsRef.current.find((item) => item.id === id);
+      dropFile(id, current?.board);
       await commit(itemsRef.current.filter((item) => item.id !== id));
     },
     [commit],
   );
 
   const share = useCallback(async (item: SavedMedia) => {
-    const file = savedFile(item.filename);
+    const file = savedFile(item.filename, item.board);
     if (!file.exists) {
       Alert.alert("Media", "This file is no longer on the device.");
       return;

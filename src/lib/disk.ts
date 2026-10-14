@@ -1,16 +1,76 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 
+import { isBoardCode } from "@/src/api/ids";
+
 const SAVED_FOLDER = "asagi-saved";
 
-export function savedDirectory(): Directory {
+function savedRoot(): Directory {
   const dir = new Directory(Paths.document, SAVED_FOLDER);
   if (!dir.exists) dir.create({ idempotent: true });
   return dir;
 }
 
-export function savedFile(filename: string): File {
-  return new File(savedDirectory(), filename);
+/** Dossier du board, ou null si le code ne peut pas servir de chemin. */
+export function boardFolderName(board: string | undefined): string | null {
+  if (!board) return null;
+  const code = board.trim().toLowerCase();
+  return isBoardCode(code) ? code : null;
+}
+
+function storedName(filename: string): string | null {
+  if (!filename || filename.length > 180) return null;
+  if (filename.includes("/") || filename.includes("\\") || filename.includes("..")) return null;
+  return filename;
+}
+
+export function savedDirectory(board?: string): Directory {
+  const root = savedRoot();
+  const folder = boardFolderName(board);
+  if (!folder) return root;
+  const dir = new Directory(root, folder);
+  if (!dir.exists) dir.create({ idempotent: true });
+  return dir;
+}
+
+/**
+ * Fichier gardé. Les nouveaux vont dans `asagi-saved/{board}/`.
+ * Un fichier déjà enregistré à la racine reste lisible.
+ */
+export function savedFile(filename: string, board?: string): File {
+  const root = savedRoot();
+  const name = storedName(filename) ?? "file";
+  const legacy = new File(root, name);
+  const folder = boardFolderName(board);
+  if (!folder) return legacy;
+  const dir = new Directory(root, folder);
+  const nested = new File(dir, name);
+  if (nested.exists) return nested;
+  if (legacy.exists) return legacy;
+  if (!dir.exists) dir.create({ idempotent: true });
+  return nested;
+}
+
+/** Déplace les fichiers plats déjà gardés dans le dossier de leur board. */
+export async function placeSavedFiles(items: { filename: string; board: string }[]): Promise<void> {
+  const root = new Directory(Paths.document, SAVED_FOLDER);
+  if (!root.exists) return;
+  for (const item of items) {
+    const folder = boardFolderName(item.board);
+    const name = storedName(item.filename);
+    if (!folder || !name) continue;
+    const legacy = new File(root, name);
+    if (!legacy.exists) continue;
+    const dir = new Directory(root, folder);
+    if (!dir.exists) dir.create({ idempotent: true });
+    const dest = new File(dir, name);
+    if (dest.exists) continue;
+    try {
+      await legacy.move(dest);
+    } catch {
+      // Le fichier reste à la racine. savedFile le retrouve.
+    }
+  }
 }
 
 function measureDirectory(dir: Directory, depth: number): number {

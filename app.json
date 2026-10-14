@@ -61,8 +61,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Asagi saves images and videos to your photo library.",
-          "savePhotosPermission": "Asagi saves images and videos to your photo library.",
+          "photosPermission": "Asagi saves images and videos into one photo album per board.",
+          "savePhotosPermission": "Asagi saves images and videos into one photo album per board.",
           "isAccessMediaLocationEnabled": false,
           "granularPermissions": ["photo", "video"]
         }
