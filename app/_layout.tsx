@@ -1,55 +1,72 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { LibraryProvider, useLibrary } from "@/src/state/LibraryContext";
+import { SettingsProvider, useAppTheme } from "@/src/state/SettingsContext";
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from "expo-router";
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
+  return (
+    <SettingsProvider>
+      <LibraryProvider>
+        <RootGate />
+      </LibraryProvider>
+    </SettingsProvider>
+  );
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+function RootGate() {
+  const { ready: settingsReady, palette, dark } = useAppTheme();
+  const { ready: libraryReady } = useLibrary();
+  const ready = settingsReady && libraryReady;
+
+  useEffect(() => {
+    if (!ready) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!ready) return null;
+
+  const base = dark ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...base,
+    dark,
+    colors: {
+      ...base.colors,
+      primary: palette.accent,
+      background: palette.background,
+      card: palette.header,
+      text: palette.text,
+      border: palette.border,
+      notification: palette.nsfw,
+    },
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <ThemeProvider value={navigationTheme}>
+      <StatusBar style={dark ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: palette.header },
+          headerTintColor: palette.text,
+          headerTitleStyle: { fontWeight: "600" },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: palette.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );

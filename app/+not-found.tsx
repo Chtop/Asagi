@@ -1,40 +1,25 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Stack, router } from "expo-router";
+import { Pressable, StyleSheet, Text } from "react-native";
 
-import { Text, View } from '@/components/Themed';
+import { Screen } from "@/src/components/ui";
+import { useAppTheme } from "@/src/state/SettingsContext";
 
 export default function NotFoundScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
+  const { palette } = useAppTheme();
 
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </View>
-    </>
+  return (
+    <Screen>
+      <Stack.Screen options={{ title: "Introuvable" }} />
+      <Pressable accessibilityRole="button" onPress={() => router.replace("/")} style={styles.body}>
+        <Text style={[styles.title, { color: palette.text }]}>Cette page n'existe pas.</Text>
+        <Text style={[styles.back, { color: palette.accent }]}>Retour aux boards</Text>
+      </Pressable>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#2e78b7',
-  },
+  body: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
+  title: { fontSize: 18, fontWeight: "700" },
+  back: { fontSize: 15, fontWeight: "600" },
 });

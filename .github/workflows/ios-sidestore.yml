@@ -1,0 +1,292 @@
+# Unsigned iPhone IPA for SideStore.
+# A free Apple ID cannot sign an EAS device build. This job compiles a real
+# iphoneos binary on a GitHub macOS runner and leaves it unsigned. SideStore
+# re-signs the artifact with the free account.
+#
+# Xcode 27 is intentionally not used. Its iOS 27 SDK refuses to launch an
+# Expo SDK 57 app that has no UIScene lifecycle. SDK 57 needs Xcode 26.4+.
+
+name: Build SideStore IPA
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-sidestore
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  device-ipa:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      COCOAPODS_DISABLE_STATS: "1"
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEV=$(python3 - << 'PY'
+          import glob
+          import os
+          import subprocess
+          import sys
+
+          best = None
+          best_parts = None
+          for app in glob.glob("/Applications/Xcode_26*.app"):
+              env = os.environ.copy()
+              env["DEVELOPER_DIR"] = os.path.join(app, "Contents", "Developer")
+              out = subprocess.check_output(["xcodebuild", "-version"], env=env, text=True)
+              version = out.splitlines()[0].split()[-1]
+              parts = tuple(int(piece) for piece in version.split("."))
+              if parts[0] != 26 or parts[1] < 4:
+                  continue
+              if best_parts is None or parts > best_parts:
+                  best = env["DEVELOPER_DIR"]
+                  best_parts = parts
+          if best is None:
+              print("No Xcode 26.4 or newer is installed.", file=sys.stderr)
+              print("Installed:", glob.glob("/Applications/Xcode*.app"), file=sys.stderr)
+              sys.exit(1)
+          print(best)
+          PY
+          )
+          echo "DEVELOPER_DIR=$DEV" >> "$GITHUB_ENV"
+          sudo xcode-select -s "$DEV"
+          xcodebuild -version
+          xcodebuild -showsdks | awk '/iphoneos/'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            ~/.cocoapods
+          key: cocoapods-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Stamp the build number
+        shell: bash
+        run: |
+          set -euo pipefail
+          node << 'JS'
+          const fs = require('fs');
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          app.expo.ios = app.expo.ios || {};
+          app.expo.ios.buildNumber = String(process.env.GITHUB_RUN_NUMBER || '1');
+          fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          JS
+
+      - name: Prebuild the iOS project
+        run: npx expo prebuild --platform ios --clean --non-interactive
+
+      - name: Point the bundle script at Node
+        shell: bash
+        run: |
+          set -euo pipefail
+          NODE_BINARY=$(command -v node)
+          echo "export NODE_BINARY=$NODE_BINARY" > ios/.xcode.env.local
+          echo "NODE_BINARY=$NODE_BINARY"
+
+      - name: Refuse entitlements a free Apple ID cannot sign
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES=$(find ios \( -path 'ios/Pods' -o -path 'ios/Pods/*' \) -prune -o -name '*.entitlements' -print)
+          if [ -z "$FILES" ]; then
+            echo "No entitlements file."
+            exit 0
+          fi
+          echo "$FILES"
+          forbidden='aps-environment|com\.apple\.developer\.icloud|com\.apple\.developer\.associated-domains|com\.apple\.developer\.applesignin|com\.apple\.developer\.healthkit|com\.apple\.security\.application-groups'
+          if grep -E "$forbidden" $FILES; then
+            echo "These entitlements need a paid Apple team. SideStore cannot sign them with a free Apple ID."
+            exit 1
+          fi
+
+      - name: Disable code signing in the generated projects
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby << 'RUBY'
+          require 'xcodeproj'
+
+          def unlock(project)
+            project.targets.each do |target|
+              target.build_configurations.each do |config|
+                settings = config.build_settings
+                settings['CODE_SIGNING_ALLOWED'] = 'NO'
+                settings['CODE_SIGNING_REQUIRED'] = 'NO'
+                settings['CODE_SIGN_IDENTITY'] = ''
+                settings['CODE_SIGN_STYLE'] = 'Manual'
+                settings.delete('DEVELOPMENT_TEAM')
+                settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+              end
+            end
+            project.save
+          end
+
+          Dir['ios/*.xcodeproj', 'ios/Pods/Pods.xcodeproj'].each do |path|
+            next unless File.exist?(path)
+            unlock(Xcodeproj::Project.open(path))
+          end
+          RUBY
+
+      - name: Build the unsigned device app
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          workspaces=(ios/*.xcworkspace)
+          WORKSPACE=${workspaces[0]:-}
+          if [ -z "$WORKSPACE" ]; then
+            echo "No xcworkspace was generated."
+            exit 1
+          fi
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "WORKSPACE=$WORKSPACE" >> "$GITHUB_ENV"
+          echo "SCHEME=$SCHEME" >> "$GITHUB_ENV"
+          DERIVED="$RUNNER_TEMP/DerivedData"
+          if command -v xcbeautify >/dev/null; then
+            xcodebuild \
+              -workspace "$WORKSPACE" \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath "$DERIVED" \
+              build \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              DEVELOPMENT_TEAM="" \
+              COMPILER_INDEX_STORE_ENABLE=NO \
+              | xcbeautify
+          else
+            xcodebuild \
+              -workspace "$WORKSPACE" \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath "$DERIVED" \
+              build \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              DEVELOPMENT_TEAM="" \
+              COMPILER_INDEX_STORE_ENABLE=NO
+          fi
+          shopt -s nullglob
+          apps=("$DERIVED/Build/Products/Release-iphoneos/"*.app)
+          APP=${apps[0]:-}
+          if [ -z "$APP" ]; then
+            echo "Release-iphoneos app was not produced."
+            find "$DERIVED/Build/Products" -maxdepth 2 -type d -name '*.app' -print
+            exit 1
+          fi
+          echo "APP_PATH=$APP" >> "$GITHUB_ENV"
+
+      - name: Package and verify the IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$APP_PATH"
+          STAGE="$RUNNER_TEMP/ipa-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/Payload"
+          cp -R "$APP" "$STAGE/Payload/"
+          find "$STAGE/Payload" -name '_CodeSignature' -type d -prune -exec rm -rf {} \; || true
+          xattr -cr "$STAGE" || true
+          IPA="$GITHUB_WORKSPACE/${SCHEME}-unsigned.ipa"
+          (
+            cd "$STAGE"
+            zip -r -y -X "$IPA" Payload
+          )
+
+          BUNDLED=$(find "$APP" -name main.jsbundle -print)
+          if [ -z "$BUNDLED" ]; then
+            echo "main.jsbundle is missing. The IPA would open looking for Metro."
+            exit 1
+          fi
+
+          BIN="$APP/$(plutil -extract CFBundleExecutable raw -o - "$APP/Info.plist")"
+          FILE_INFO=$(file "$BIN")
+          echo "Binary: $FILE_INFO"
+          case "$FILE_INFO" in
+            *arm64*) ;;
+            *)
+              echo "Expected an arm64 device binary."
+              exit 1
+              ;;
+          esac
+          case "$FILE_INFO" in
+            *x86_64*|*i386*)
+              echo "Simulator architecture is present."
+              exit 1
+              ;;
+          esac
+
+          PLATFORMS=$(otool -l "$BIN" | awk '/LC_BUILD_VERSION/{p=1} p && /platform /{print $2; p=0}')
+          echo "LC_BUILD_VERSION platforms: $PLATFORMS"
+          if [ -z "$PLATFORMS" ] || echo "$PLATFORMS" | grep -qv '^2$'; then
+            echo "Expected iOS device platform 2. Platform 7 is the simulator."
+            exit 1
+          fi
+
+          PLATFORM_NAME=$(plutil -extract DTPlatformName raw -o - "$APP/Info.plist")
+          echo "DTPlatformName=$PLATFORM_NAME"
+          if [ "$PLATFORM_NAME" != "iphoneos" ]; then
+            echo "This is not an iPhone device build."
+            exit 1
+          fi
+
+          if plutil -extract UIBackgroundModes raw -o - "$APP/Info.plist" >/dev/null 2>&1; then
+            echo "UIBackgroundModes is set. A free provisioning profile will reject the install."
+            plutil -extract UIBackgroundModes xml1 -o - "$APP/Info.plist"
+            exit 1
+          fi
+
+          echo "CFBundleIdentifier=$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")"
+          echo "CFBundleShortVersionString=$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")"
+          echo "CFBundleVersion=$(plutil -extract CFBundleVersion raw -o - "$APP/Info.plist")"
+          echo "MinimumOSVersion=$(plutil -extract MinimumOSVersion raw -o - "$APP/Info.plist")"
+          LISTING=$(unzip -l "$IPA")
+          echo "$LISTING"
+          case "$LISTING" in
+            *Payload/*.app/Info.plist*) ;;
+            *)
+              echo "IPA root is not Payload/<App>.app."
+              exit 1
+              ;;
+          esac
+          echo "IPA=$IPA" >> "$GITHUB_ENV"
+
+      - name: Upload the IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: sidestore-ipa
+          path: ${{ env.SCHEME }}-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
