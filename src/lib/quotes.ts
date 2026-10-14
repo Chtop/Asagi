@@ -52,3 +52,11 @@ export function conversationAround(posts: Post[], focusId: number): Post[] {
   const wanted = new Set<number>([focusId, ...quoted, ...replies]);
   return posts.filter((post) => wanted.has(post.no));
 }
+
+/** Le post focus et toutes les réponses qui le citent. Pas les posts qu'il cite lui-même. */
+export function repliesAround(posts: Post[], focusId: number): Post[] {
+  if (!posts.some((post) => post.no === focusId)) return [];
+  const { replies } = directCitations(posts, focusId);
+  const wanted = new Set<number>([focusId, ...replies]);
+  return posts.filter((post) => wanted.has(post.no));
+}

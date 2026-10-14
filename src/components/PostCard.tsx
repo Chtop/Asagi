@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { CommentBody } from "@/src/components/CommentBody";
 import { MediaBlock } from "@/src/components/MediaBlock";
@@ -18,6 +18,7 @@ function PostCardComponent({
   citedBy = NO_CITATIONS,
   onOpenMedia,
   onQuote,
+  onOpenReplies,
 }: {
   board: string;
   post: Post;
@@ -26,6 +27,7 @@ function PostCardComponent({
   citedBy?: number[];
   onOpenMedia: (postNo: number) => void;
   onQuote: (target: QuoteTarget) => void;
+  onOpenReplies: (postNo: number) => void;
 }) {
   const { palette } = useAppTheme();
   const subject = post.sub ? htmlToPlain(post.sub) : "";
@@ -60,20 +62,16 @@ function PostCardComponent({
       <MediaBlock board={board} post={post} onOpen={() => onOpenMedia(post.no)} />
       <CommentBody html={post.com} onQuote={onQuote} />
       {citedBy.length > 0 ? (
-        <Text style={styles.cited}>
-          <Text style={{ color: palette.textMuted }}>Cited by </Text>
-          {citedBy.map((id, index) => (
-            <Text
-              key={id}
-              suppressHighlighting
-              onPress={() => onQuote({ kind: "post", postId: id })}
-              style={{ color: palette.quoteLink }}
-            >
-              {index > 0 ? " " : ""}
-              {`>>${id}`}
-            </Text>
-          ))}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={citedBy.length === 1 ? "1 reply" : `${citedBy.length} replies`}
+          onPress={() => onOpenReplies(post.no)}
+          hitSlop={6}
+        >
+          <Text style={[styles.cited, { color: palette.quoteLink }]}>
+            {citedBy.length === 1 ? "1 reply" : `${citedBy.length} replies`}
+          </Text>
+        </Pressable>
       ) : null}
     </View>
   );

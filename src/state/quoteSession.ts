@@ -1,10 +1,14 @@
 import type { Post } from "@/src/types/fourchan";
 
+export type QuoteView = "conversation" | "replies";
+
 export type QuoteFrame = {
   board: string;
   focusId: number;
   threadId: number;
   posts?: Post[];
+  /** conversation : clic sur un >>numéro. replies : le bouton « N replies ». */
+  view?: QuoteView;
   /** Change à chaque écriture, pour qu'un écran réutilisé relise le bon fil. */
   revision: number;
 };

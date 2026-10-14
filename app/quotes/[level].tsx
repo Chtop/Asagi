@@ -10,7 +10,7 @@ import { ErrorState, LoadingState, Screen } from "@/src/components/ui";
 import { galleryItems } from "@/src/lib/gallery";
 import type { QuoteTarget } from "@/src/lib/html";
 import { boardHref, galleryHref, quotesHref } from "@/src/lib/navigation";
-import { citedByMap, conversationAround, directCitations } from "@/src/lib/quotes";
+import { citedByMap, conversationAround, directCitations, repliesAround } from "@/src/lib/quotes";
 import { one } from "@/src/lib/route";
 import { setGallerySession } from "@/src/state/gallerySession";
 import { pushQuoteFrame, readQuoteFrame, storeQuotePosts } from "@/src/state/quoteSession";
@@ -83,10 +83,10 @@ export default function QuoteLevelScreen() {
     };
   }, [frame, level]);
 
-  const rows = useMemo(
-    () => (frame && posts ? conversationAround(posts, frame.focusId) : []),
-    [frame, posts],
-  );
+  const rows = useMemo(() => {
+    if (!frame || !posts) return [];
+    return frame.view === "replies" ? repliesAround(posts, frame.focusId) : conversationAround(posts, frame.focusId);
+  }, [frame, posts]);
   const citedBy = useMemo(() => (posts ? citedByMap(posts) : null), [posts]);
   const counts = useMemo(
     () => (frame && posts ? directCitations(posts, frame.focusId) : null),
@@ -129,7 +129,7 @@ export default function QuoteLevelScreen() {
           Alert.alert("Quote", MISSING);
           return;
         }
-        const next = pushQuoteFrame({ ...frame, posts, focusId: postId }, level);
+        const next = pushQuoteFrame({ ...frame, posts, focusId: postId, view: "conversation" }, level);
         router.push(quotesHref(next));
         return;
       }
@@ -145,7 +145,7 @@ export default function QuoteLevelScreen() {
             return;
           }
           const next = pushQuoteFrame(
-            { board: target.board, threadId: target.threadId, focusId, posts: loaded },
+            { board: target.board, threadId: target.threadId, focusId, posts: loaded, view: "conversation" },
             level,
           );
           router.push(quotesHref(next));
@@ -158,6 +158,15 @@ export default function QuoteLevelScreen() {
         .finally(() => {
           if (alive.current && request === requestSeq.current) setLoading(false);
         });
+    },
+    [frame, level, posts],
+  );
+
+  const onOpenReplies = useCallback(
+    (postNo: number) => {
+      if (!frame || !posts || !posts.some((post) => post.no === postNo)) return;
+      const next = pushQuoteFrame({ ...frame, posts, focusId: postNo, view: "replies" }, level);
+      router.push(quotesHref(next));
     },
     [frame, level, posts],
   );
@@ -175,9 +184,13 @@ export default function QuoteLevelScreen() {
   );
 
   const subtitle = counts
-    ? `${counts.quoted.length === 1 ? "1 quote" : `${counts.quoted.length} quotes`} · ${
-        counts.replies.length === 1 ? "1 reply" : `${counts.replies.length} replies`
-      }`
+    ? frame?.view === "replies"
+      ? counts.replies.length === 1
+        ? "1 reply"
+        : `${counts.replies.length} replies`
+      : `${counts.quoted.length === 1 ? "1 quote" : `${counts.quoted.length} quotes`} · ${
+          counts.replies.length === 1 ? "1 reply" : `${counts.replies.length} replies`
+        }`
     : "";
 
   const retry = () => {
@@ -238,7 +251,9 @@ export default function QuoteLevelScreen() {
           }}
           ListHeaderComponent={
             rows.length <= 1 ? (
-              <Text style={[styles.alone, { color: palette.textMuted }]}>No other direct quotes.</Text>
+              <Text style={[styles.alone, { color: palette.textMuted }]}>
+                {frame.view === "replies" ? "No replies." : "No other direct quotes."}
+              </Text>
             ) : null
           }
           renderItem={({ item }) => (
@@ -250,6 +265,7 @@ export default function QuoteLevelScreen() {
               citedBy={citedBy?.get(item.no)}
               onOpenMedia={onOpenMedia}
               onQuote={onQuote}
+              onOpenReplies={onOpenReplies}
             />
           )}
         />

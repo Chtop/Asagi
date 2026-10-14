@@ -356,7 +356,7 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
           Alert.alert("Quote", "This post is not in this thread.");
           return;
         }
-        openQuotes({ board, posts, focusId, threadId: threadNo });
+        openQuotes({ board, posts, focusId, threadId: threadNo, view: "conversation" });
         router.push(quotesHref(0));
         return;
       }
@@ -364,7 +364,17 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
         board: target.board,
         threadId: target.threadId,
         focusId: target.postId ?? target.threadId,
+        view: "conversation",
       });
+      router.push(quotesHref(0));
+    },
+    [board, posts, threadId],
+  );
+
+  const onOpenReplies = useCallback(
+    (postNo: number) => {
+      const threadNo = Number(threadId);
+      openQuotes({ board, posts, focusId: postNo, threadId: threadNo, view: "replies" });
       router.push(quotesHref(0));
     },
     [board, posts, threadId],
@@ -478,6 +488,7 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
                   citedBy={citedBy.get(item.no)}
                   onOpenMedia={onOpenMedia}
                   onQuote={onQuote}
+                  onOpenReplies={onOpenReplies}
                 />
               )}
             />
