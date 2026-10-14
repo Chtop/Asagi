@@ -1,10 +1,10 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Alert, Pressable, SectionList, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { EmptyState, Screen } from "@/src/components/ui";
 import { savedFile } from "@/src/lib/disk";
-import { formatBytes, formatWhen } from "@/src/lib/format";
+import { transientImage } from "@/src/lib/imageCache";
 import type { GalleryItem } from "@/src/lib/gallery";
 import { galleryHref } from "@/src/lib/navigation";
 import { setGallerySession } from "@/src/state/gallerySession";
@@ -12,13 +12,18 @@ import { useSavedMedia } from "@/src/state/SavedMediaContext";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { SavedMedia } from "@/src/storage/model";
 
+const COLUMNS = 3;
+const GAP = 2;
+
+type Album = { board: string; count: number; data: SavedMedia[][] };
+
 function kindLabel(kind: SavedMedia["kind"]): string {
   if (kind === "webm") return "WebM";
   if (kind === "mp4") return "MP4";
   return "IMG";
 }
 
-function sectionsFor(items: SavedMedia[]): { board: string; data: SavedMedia[] }[] {
+function albumsFor(items: SavedMedia[]): Album[] {
   const order: string[] = [];
   const groups = new Map<string, SavedMedia[]>();
   for (const item of items) {
@@ -30,16 +35,26 @@ function sectionsFor(items: SavedMedia[]): { board: string; data: SavedMedia[] }
       order.push(board);
     }
   }
-  return order.map((board) => ({ board, data: groups.get(board) ?? [] }));
+  return order.map((board) => {
+    const files = groups.get(board) ?? [];
+    const data: SavedMedia[][] = [];
+    for (let index = 0; index < files.length; index += COLUMNS) {
+      data.push(files.slice(index, index + COLUMNS));
+    }
+    return { board, count: files.length, data };
+  });
 }
 
 export default function SavedMediaScreen() {
   const { palette } = useAppTheme();
+  const { width } = useWindowDimensions();
   const { items, remove, share } = useSavedMedia();
-  const sections = sectionsFor(items);
+  const albums = albumsFor(items);
+  const tile = (width - GAP * (COLUMNS - 1)) / COLUMNS;
 
   const openAt = (item: SavedMedia) => {
-    const playable = items.flatMap((entry) => {
+    const album = items.filter((entry) => (entry.board || "saved") === (item.board || "saved"));
+    const playable = album.flatMap((entry) => {
       const file = savedFile(entry.filename, entry.board);
       if (!file.exists) return [];
       const galleryItem: GalleryItem = {
@@ -69,64 +84,58 @@ export default function SavedMediaScreen() {
     ]);
   };
 
+  const askActions = (item: SavedMedia) => {
+    Alert.alert(item.originalName, item.board ? `/${item.board}/${item.postNo}` : `#${item.postNo}`, [
+      { text: "Share", onPress: () => void share(item) },
+      { text: "Remove", style: "destructive", onPress: () => confirmRemove(item) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   return (
     <Screen>
       <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
+        sections={albums}
+        keyExtractor={(row) => row.map((item) => item.id).join("-")}
         stickySectionHeadersEnabled
         contentContainerStyle={items.length === 0 ? styles.empty : styles.list}
         renderSectionHeader={({ section }) => (
           <View style={[styles.header, { backgroundColor: palette.background }]}>
             <Text style={[styles.headerText, { color: palette.text }]}>/{section.board}/</Text>
+            <Text style={{ color: palette.textMuted, fontSize: 13 }}>{section.count}</Text>
           </View>
         )}
-        renderItem={({ item }) => {
-          const file = savedFile(item.filename, item.board);
-          const size = formatBytes(item.bytes ?? undefined);
-          return (
-            <View style={[styles.row, { borderBottomColor: palette.border }]}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => openAt(item)}
-                style={({ pressed }) => [styles.main, { opacity: pressed ? 0.7 : 1 }]}
-              >
-                {item.kind === "image" && file.exists ? (
-                  <Image
-                    source={{ uri: file.uri }}
-                    recyclingKey={file.uri}
-                    contentFit="cover"
-                    style={[styles.thumb, { backgroundColor: palette.surfaceAlt }]}
-                  />
-                ) : (
-                  <View style={[styles.thumb, styles.placeholder, { backgroundColor: palette.surfaceAlt }]}>
-                    <Text style={{ color: palette.textMuted, fontSize: 12, fontWeight: "700" }}>
-                      {kindLabel(item.kind)}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.body}>
-                  <Text numberOfLines={2} style={[styles.title, { color: palette.text }]}>
-                    {item.originalName}
-                  </Text>
-                  <Text style={{ color: palette.textMuted, fontSize: 12 }}>
-                    {item.board ? `/${item.board}/${item.postNo}` : `#${item.postNo}`}
-                    {size ? ` · ${size}` : ""}
-                  </Text>
-                  <Text style={{ color: palette.textMuted, fontSize: 12 }}>Kept {formatWhen(item.savedAt)}</Text>
-                </View>
-              </Pressable>
-              <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Share" hitSlop={8} onPress={() => void share(item)}>
-                  <Text style={{ color: palette.accent, fontWeight: "700" }}>Share</Text>
+        renderItem={({ item: row }) => (
+          <View style={styles.row}>
+            {row.map((item) => {
+              const file = savedFile(item.filename, item.board);
+              const showImage = item.kind === "image" && file.exists;
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`${item.originalName}, ${kindLabel(item.kind)}`}
+                  accessibilityHint="Opens the file. Hold for share or remove."
+                  onPress={() => openAt(item)}
+                  onLongPress={() => askActions(item)}
+                  style={[styles.tile, { width: tile, height: tile, backgroundColor: palette.surfaceAlt }]}
+                >
+                  {showImage ? (
+                    <Image
+                      source={{ uri: file.uri }}
+                      recyclingKey={file.uri}
+                      cachePolicy={transientImage}
+                      contentFit="cover"
+                      style={StyleSheet.absoluteFill}
+                    />
+                  ) : (
+                    <Text style={[styles.kind, { color: palette.text }]}>{kindLabel(item.kind)}</Text>
+                  )}
                 </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="Remove" hitSlop={8} onPress={() => confirmRemove(item)}>
-                  <Text style={{ color: palette.danger, fontWeight: "700" }}>Remove</Text>
-                </Pressable>
-              </View>
-            </View>
-          );
-        }}
+              );
+            })}
+          </View>
+        )}
         ListEmptyComponent={
           <EmptyState
             title="No saved media"
@@ -141,20 +150,16 @@ export default function SavedMediaScreen() {
 const styles = StyleSheet.create({
   empty: { flexGrow: 1 },
   list: { paddingBottom: 24 },
-  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
-  headerText: { fontSize: 15, fontWeight: "700" },
-  row: {
+  header: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "baseline",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingTop: 18,
+    paddingBottom: 8,
   },
-  main: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  thumb: { width: 56, height: 56, borderRadius: 8 },
-  placeholder: { alignItems: "center", justifyContent: "center" },
-  body: { flex: 1, gap: 3 },
-  title: { fontSize: 15, fontWeight: "600" },
-  actions: { gap: 10, alignItems: "flex-end" },
+  headerText: { fontSize: 17, fontWeight: "700" },
+  row: { flexDirection: "row", gap: GAP, marginBottom: GAP },
+  tile: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  kind: { fontSize: 13, fontWeight: "700" },
 });

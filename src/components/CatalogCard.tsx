@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { previewFor, thumbnailFor } from "@/src/api/media";
+import { transientImage } from "@/src/lib/imageCache";
 import { replySummary, threadTitle } from "@/src/lib/format";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import { useLibrary } from "@/src/state/LibraryContext";
@@ -101,6 +102,7 @@ export function CatalogCard({
           <Image
             source={{ uri: preview }}
             recyclingKey={preview}
+            cachePolicy={transientImage}
             contentFit="cover"
             style={[styles.thumb, { backgroundColor: palette.surfaceAlt }]}
             transition={120}

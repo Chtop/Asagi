@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { mediaForPost, type VisualMedia } from "@/src/api/media";
+import { transientImage } from "@/src/lib/imageCache";
 import { formatBytes } from "@/src/lib/format";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { Post } from "@/src/types/fourchan";
@@ -60,6 +61,7 @@ export function MediaBlock({ board, post, onOpen }: { board: string; post: Post;
           <Image
             source={{ uri: video ? media.thumbUrl : media.fullUrl }}
             recyclingKey={video ? media.thumbUrl : media.fullUrl}
+            cachePolicy={video ? "disk" : transientImage}
             contentFit={video ? "cover" : "contain"}
             style={{ width: "100%", height, backgroundColor: video ? "#000" : palette.surfaceAlt }}
             onError={() => setFailed(true)}

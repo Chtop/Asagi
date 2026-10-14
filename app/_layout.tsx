@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 
+import { configureImageCache } from "@/src/lib/imageCache";
 import { LibraryProvider, useLibrary } from "@/src/state/LibraryContext";
 import { SavedMediaProvider, useSavedMedia } from "@/src/state/SavedMediaContext";
 import { SettingsProvider, useAppTheme } from "@/src/state/SettingsContext";
@@ -10,6 +11,7 @@ import { SettingsProvider, useAppTheme } from "@/src/state/SettingsContext";
 export { ErrorBoundary } from "expo-router";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+configureImageCache();
 
 export default function RootLayout() {
   return (

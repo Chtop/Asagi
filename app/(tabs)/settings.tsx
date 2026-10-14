@@ -101,8 +101,9 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={[styles.heading, { color: palette.text }]}>Cache</Text>
           <Text style={[styles.note, { color: palette.textMuted }]}>
-            {cacheLabel}. Clearing it removes temporary files. History, favorites, the last post you read, and saved
-            media stay.
+            {cacheLabel}. Full images are shown and not stored. Only small thumbnails can stay on disk, up to 48 MB.
+            Clearing the cache removes temporary files. History, favorites, the last post you read, and saved media
+            stay.
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -110,7 +111,7 @@ export default function SettingsScreen() {
             onPress={() => {
               Alert.alert(
                 "Clear cache",
-                "Downloaded images will be downloaded again. History, favorites, the last post you read, and saved media stay.",
+                "Temporary files and thumbnails will be downloaded again. History, favorites, the last post you read, and saved media stay.",
                 [
                   { text: "Cancel", style: "cancel" },
                   {

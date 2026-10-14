@@ -19,7 +19,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EdgeBack } from "@/src/components/EdgeBack";
 import { WebmPlayer } from "@/src/components/WebmPlayer";
 import type { GalleryItem } from "@/src/lib/gallery";
-import { downloadToCache, saveInPhotoLibrary } from "@/src/lib/saveMedia";
+import { transientImage } from "@/src/lib/imageCache";
+import { discardCachedFile, downloadToCache, saveInPhotoLibrary } from "@/src/lib/saveMedia";
 import { readGallerySession } from "@/src/state/gallerySession";
 import { useSavedMedia } from "@/src/state/SavedMediaContext";
 
@@ -56,7 +57,7 @@ function ZoomImage({ uri, width, height }: { uri: string; width: number; height:
       showsVerticalScrollIndicator={false}
     >
       <View style={{ width, height }} collapsable={false}>
-        <Image source={{ uri }} contentFit="contain" style={{ width, height }} />
+        <Image source={{ uri }} cachePolicy={transientImage} contentFit="contain" style={{ width, height }} />
       </View>
     </ScrollView>
   );
@@ -124,8 +125,10 @@ export default function GalleryScreen() {
   const onSave = async () => {
     if (busy || !current) return;
     setBusy("save");
+    let downloaded: string | null = null;
     try {
       const uri = local ? current.url : await downloadToCache(current.url, current.filename);
+      if (!local) downloaded = uri;
       if (current.kind === "webm") {
         await Share.share({ url: uri });
         return;
@@ -137,6 +140,7 @@ export default function GalleryScreen() {
       if (/did not share|cancel/i.test(message)) return;
       Alert.alert("Save", message);
     } finally {
+      if (downloaded) discardCachedFile(downloaded);
       setBusy(null);
     }
   };

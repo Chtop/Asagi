@@ -1,12 +1,10 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchCatalog } from "@/src/api/fourchan";
 import { isBoardCode } from "@/src/api/ids";
 import { CatalogCard } from "@/src/components/CatalogCard";
-import { ScrollDock } from "@/src/components/ScrollDock";
 import { EmptyState, ErrorBanner, ErrorState, FilterChips, LoadingState, Screen } from "@/src/components/ui";
 import { CATALOG_SORT_OPTIONS, SORT_DIRECTION_OPTIONS, sortCatalog } from "@/src/lib/catalogSort";
 import { threadTitle } from "@/src/lib/format";
@@ -24,8 +22,6 @@ export default function CatalogScreen() {
   const board = one(params.board).toLowerCase();
   const title = htmlToPlain(one(params.title)) || `/${board}/`;
   const { palette, settings, setCatalogView } = useAppTheme();
-  const insets = useSafeAreaInsets();
-  const listRef = useRef<FlatList<Cell>>(null);
   const [threads, setThreads] = useState<Post[]>([]);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
@@ -157,7 +153,6 @@ export default function CatalogScreen() {
             ) : null}
           </View>
           <FlatList
-            ref={listRef}
             key={view}
             style={styles.list}
             data={cells}
@@ -165,7 +160,7 @@ export default function CatalogScreen() {
             numColumns={view === "list" ? 1 : 2}
             columnWrapperStyle={view === "list" ? undefined : { gap: 10, marginBottom: 10 }}
             ItemSeparatorComponent={view === "list" ? ListGap : undefined}
-            contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 76 }]}
+            contentContainerStyle={styles.content}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -199,12 +194,6 @@ export default function CatalogScreen() {
               />
             }
           />
-          <ScrollDock
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            onTop={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-            onBottom={() => listRef.current?.scrollToEnd({ animated: true })}
-          />
         </View>
       ) : null}
     </Screen>
@@ -218,7 +207,7 @@ function ListGap() {
 const styles = StyleSheet.create({
   body: { flex: 1 },
   list: { flex: 1 },
-  tools: { paddingHorizontal: 12, paddingTop: 8, gap: 8 },
+  tools: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8, gap: 8 },
   chipBlock: { gap: 8, paddingBottom: 8 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   search: {

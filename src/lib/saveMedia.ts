@@ -9,6 +9,18 @@ import {
 
 import { isBoardCode } from "@/src/api/ids";
 
+/** Efface un téléchargement temporaire. Un fichier gardé ou hors cache est laissé. */
+export function discardCachedFile(uri: string): void {
+  try {
+    const cache = Paths.cache.uri;
+    if (!uri.startsWith(cache)) return;
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } catch {
+    // Un fichier déjà parti ne doit pas faire échouer l'enregistrement.
+  }
+}
+
 export async function downloadToCache(url: string, filename: string): Promise<string> {
   try {
     const destination = new File(Paths.cache, filename);

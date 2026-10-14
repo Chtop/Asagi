@@ -9,13 +9,13 @@ Expo SDK 57 and React Native 0.86. The iOS bundle identifier is `app.asagi.reade
 - Board list, local search, and a worksafe / NSFW filter from the `ws_board` field.
 - Open a board or a thread from a pasted `boards.4chan.org` or `boards.4channel.org` link.
 - Catalog as a grid or a list. Sort by bump, date, replies, or images. Search the catalog that is already loaded. Sort and order stay hidden until Sort is tapped.
-- Full threads. Opening a thread again returns to the last post on screen. Refresh, Top, and Bottom sit at the bottom of a thread, a catalog, and a quote view.
+- Full threads. Opening a thread again returns to the last post on screen. Refresh, Top, and Bottom sit at the bottom of a thread.
 - Gallery: swipe through the thread's files, zoom, and play MP4 and WebM. The WebM player has play, pause, duration, a timeline, and mute.
 - Quotes: the post, the posts it quotes, and the posts that quote it. Back returns one level at a time.
 - Links in a post open on tap. A board link stays in the app. Other web links open in the browser. Plain post text can be selected and copied.
 - Save images, GIFs, and MP4 into one Photos album per board. WebM cannot go into Photos, so it goes through the share sheet, to Files.
-- Media kept in the app, one folder per board, and grouped in the Media tab. Those files stay when the cache is cleared.
-- Cache size and a one-tap clear. History, favorites, the last read post, and saved media stay.
+- Media kept in the app, one folder per board, shown as a mosaic in the Media tab. A long press shares or removes a file. Those files stay when the cache is cleared.
+- Full images are shown and not stored. Small thumbnails can use up to 48 MB of disk. Cache size and a one-tap clear. History, favorites, the last read post, and saved media stay.
 - Favorites, history, and settings stored on the device, in AsyncStorage.
 - Dark, light, or system theme.
 
