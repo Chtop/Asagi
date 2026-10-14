@@ -23,6 +23,6 @@ export function galleryHref(): Href {
   return "/gallery" as Href;
 }
 
-export function quotesHref(): Href {
-  return "/quotes" as Href;
+export function quotesHref(level = 0): Href {
+  return { pathname: "/quotes/[level]", params: { level: String(level) } } as Href;
 }

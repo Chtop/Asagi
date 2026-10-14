@@ -39,7 +39,7 @@ export default function SavedMediaScreen() {
     });
     const index = playable.findIndex((entry) => entry.filename === item.filename);
     if (index < 0) {
-      Alert.alert("Média", "Ce fichier n'est plus sur l'appareil.");
+      Alert.alert("Media", "This file is no longer on the device.");
       return;
     }
     setGallerySession({ items: playable, index });
@@ -47,9 +47,9 @@ export default function SavedMediaScreen() {
   };
 
   const confirmRemove = (item: SavedMedia) => {
-    Alert.alert("Retirer ce média", "Le fichier est supprimé de l'app. La photothèque n'est pas modifiée.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Retirer", style: "destructive", onPress: () => void remove(item.id) },
+    Alert.alert("Remove this file", "The file is deleted from the app. Your photo library is not changed.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => void remove(item.id) },
     ]);
   };
 
@@ -91,15 +91,15 @@ export default function SavedMediaScreen() {
                     {item.board ? `/${item.board}/${item.postNo}` : `#${item.postNo}`}
                     {size ? ` · ${size}` : ""}
                   </Text>
-                  <Text style={{ color: palette.textMuted, fontSize: 12 }}>Gardé {formatWhen(item.savedAt)}</Text>
+                  <Text style={{ color: palette.textMuted, fontSize: 12 }}>Kept {formatWhen(item.savedAt)}</Text>
                 </View>
               </Pressable>
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Partager" hitSlop={8} onPress={() => void share(item)}>
-                  <Text style={{ color: palette.accent, fontWeight: "700" }}>Partager</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Share" hitSlop={8} onPress={() => void share(item)}>
+                  <Text style={{ color: palette.accent, fontWeight: "700" }}>Share</Text>
                 </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="Retirer" hitSlop={8} onPress={() => confirmRemove(item)}>
-                  <Text style={{ color: palette.danger, fontWeight: "700" }}>Retirer</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Remove" hitSlop={8} onPress={() => confirmRemove(item)}>
+                  <Text style={{ color: palette.danger, fontWeight: "700" }}>Remove</Text>
                 </Pressable>
               </View>
             </View>
@@ -107,8 +107,8 @@ export default function SavedMediaScreen() {
         }}
         ListEmptyComponent={
           <EmptyState
-            title="Aucun média gardé"
-            detail="Ouvre une image ou une vidéo, puis appuie sur Garder. Ces fichiers restent après un vidage du cache."
+            title="No saved media"
+            detail="Open an image or a video, then tap Keep. These files stay after you clear the cache."
           />
         }
       />

@@ -22,10 +22,10 @@ export function MediaBlock({ board, post, onOpen }: { board: string; post: Post;
 
   if (media.kind === "none") return null;
   if (media.kind === "deleted") {
-    return <Text style={{ color: palette.textMuted }}>Fichier supprimé.</Text>;
+    return <Text style={{ color: palette.textMuted }}>File deleted.</Text>;
   }
   if (media.kind === "unknown") {
-    return <Text style={{ color: palette.textMuted }}>Fichier {media.ext} non affiché.</Text>;
+    return <Text style={{ color: palette.textMuted }}>File {media.ext} is not shown.</Text>;
   }
 
   const height = mediaHeight(media, width);
@@ -54,9 +54,9 @@ export function MediaBlock({ board, post, onOpen }: { board: string; post: Post;
   return (
     <View style={styles.block}>
       {failed ? (
-        <Text style={{ color: palette.textMuted }}>Image indisponible.</Text>
+        <Text style={{ color: palette.textMuted }}>Image unavailable.</Text>
       ) : (
-        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir dans la galerie" onPress={onOpen}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open in the gallery" onPress={onOpen}>
           <Image
             source={{ uri: video ? media.thumbUrl : media.fullUrl }}
             recyclingKey={video ? media.thumbUrl : media.fullUrl}
@@ -66,7 +66,7 @@ export function MediaBlock({ board, post, onOpen }: { board: string; post: Post;
           />
           {video ? (
             <View style={styles.play} pointerEvents="none">
-              <Text style={styles.playText}>Lire</Text>
+              <Text style={styles.playText}>Play</Text>
             </View>
           ) : null}
         </Pressable>

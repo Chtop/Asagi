@@ -17,15 +17,15 @@ function suffixFor(ext: string): string {
 
 function fileNameFor(post: Post, ext: string): string {
   const suffix = suffixFor(ext);
-  const raw = (post.filename ?? "fichier").normalize("NFKD");
+  const raw = (post.filename ?? "file").normalize("NFKD");
   const stem = raw.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(0, 60);
   const trimmed = stem.toLowerCase().endsWith(suffix) ? stem.slice(0, -suffix.length) : stem;
-  return `${post.no}-${trimmed || "fichier"}${suffix}`;
+  return `${post.no}-${trimmed || "file"}${suffix}`;
 }
 
 function displayNameFor(post: Post, ext: string): string {
   const suffix = suffixFor(ext);
-  const raw = post.filename?.trim() || "fichier";
+  const raw = post.filename?.trim() || "file";
   return raw.toLowerCase().endsWith(suffix) ? raw : `${raw}${suffix}`;
 }
 

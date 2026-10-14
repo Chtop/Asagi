@@ -46,28 +46,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="favorites"
         options={{
-          title: "Favoris",
+          title: "Favorites",
           tabBarIcon: ({ color }) => <TabIcon ios="star" glyph="★" color={color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: "Médias",
+          title: "Media",
           tabBarIcon: ({ color }) => <TabIcon ios="photo" glyph="▣" color={color} />,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: "Historique",
+          title: "History",
           tabBarIcon: ({ color }) => <TabIcon ios="clock" glyph="◷" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Réglages",
+          title: "Settings",
           tabBarIcon: ({ color }) => <TabIcon ios="gearshape" glyph="⚙" color={color} />,
         }}
       />

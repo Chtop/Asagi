@@ -36,7 +36,7 @@ export default function CatalogScreen() {
   const load = useCallback(
     async (mode: "initial" | "refresh") => {
       if (!isBoardCode(board)) {
-        setBanner("Code de board invalide.");
+        setBanner("Invalid board code.");
         setPhase("error");
         return;
       }
@@ -49,7 +49,7 @@ export default function CatalogScreen() {
         setPhase("ready");
         setBanner(null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Erreur inconnue.";
+        const message = error instanceof Error ? error.message : "Unknown error.";
         if (mode === "refresh" && hasData.current) setBanner(message);
         else {
           setBanner(message);
@@ -105,19 +105,19 @@ export default function CatalogScreen() {
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={view === "grid" ? "Afficher en liste" : "Afficher en grille"}
+              accessibilityLabel={view === "grid" ? "Show as list" : "Show as grid"}
               hitSlop={8}
               onPress={() => setCatalogView(view === "grid" ? "list" : "grid")}
               style={styles.viewToggle}
             >
-              <Text style={{ color: palette.accent, fontWeight: "700" }}>{view === "grid" ? "Liste" : "Grille"}</Text>
+              <Text style={{ color: palette.accent, fontWeight: "700" }}>{view === "grid" ? "List" : "Grid"}</Text>
             </Pressable>
           ),
         }}
       />
       {phase === "loading" ? <LoadingState label={`Catalog /${board}/…`} /> : null}
       {phase === "error" ? (
-        <ErrorState message={banner ?? "Erreur inconnue."} onRetry={() => void load("initial")} />
+        <ErrorState message={banner ?? "Unknown error."} onRetry={() => void load("initial")} />
       ) : null}
       {phase === "ready" ? (
         <>
@@ -126,7 +126,7 @@ export default function CatalogScreen() {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Titre, texte ou numéro"
+              placeholder="Title, text, or number"
               placeholderTextColor={palette.textMuted}
               clearButtonMode="while-editing"
               autoCorrect={false}
@@ -169,11 +169,11 @@ export default function CatalogScreen() {
             keyboardDismissMode="on-drag"
             ListEmptyComponent={
               <EmptyState
-                title={query.trim() ? "Aucun résultat" : "Catalog vide"}
+                title={query.trim() ? "No results" : "Empty catalog"}
                 detail={
                   query.trim()
-                    ? "Aucun thread pour cette recherche."
-                    : "Aucun thread sur ce board pour le moment."
+                    ? "No threads match this search."
+                    : "No threads on this board right now."
                 }
               />
             }

@@ -15,22 +15,22 @@ export function threadTitle(post: { no: number; sub?: string; com?: string }, bo
 export function replySummary(replies?: number, images?: number): string {
   const replyCount = replies ?? 0;
   const imageCount = images ?? 0;
-  const replyLabel = replyCount === 1 ? "1 réponse" : `${replyCount} réponses`;
+  const replyLabel = replyCount === 1 ? "1 reply" : `${replyCount} replies`;
   const imageLabel = imageCount === 1 ? "1 image" : `${imageCount} images`;
   return `${replyLabel} · ${imageLabel}`;
 }
 
 export function formatBytes(bytes?: number): string | null {
   if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return null;
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function formatWhen(timestamp: number): string {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",

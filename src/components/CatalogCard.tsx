@@ -39,16 +39,16 @@ export function CatalogCard({
 
   const flags = (
     <View style={styles.flags}>
-      {post.sticky === 1 ? <Text style={[styles.flag, { color: palette.accent }]}>Épinglé</Text> : null}
-      {post.closed === 1 ? <Text style={[styles.flag, { color: palette.textMuted }]}>Fermé</Text> : null}
+      {post.sticky === 1 ? <Text style={[styles.flag, { color: palette.accent }]}>Pinned</Text> : null}
+      {post.closed === 1 ? <Text style={[styles.flag, { color: palette.textMuted }]}>Closed</Text> : null}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+        accessibilityLabel={favorite ? "Remove from favorites" : "Add to favorites"}
         hitSlop={8}
         onPress={onFavorite}
       >
         <Text style={{ color: favorite ? palette.accent : palette.textMuted, fontWeight: "700" }}>
-          {favorite ? "En favori" : "Favori"}
+          {favorite ? "Favorited" : "Favorite"}
         </Text>
       </Pressable>
     </View>

@@ -9,10 +9,10 @@ export default function NotFoundScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: "Introuvable" }} />
+      <Stack.Screen options={{ title: "Not found" }} />
       <Pressable accessibilityRole="button" onPress={() => router.replace("/")} style={styles.body}>
-        <Text style={[styles.title, { color: palette.text }]}>Cette page n'existe pas.</Text>
-        <Text style={[styles.back, { color: palette.accent }]}>Retour aux boards</Text>
+        <Text style={[styles.title, { color: palette.text }]}>This page does not exist.</Text>
+        <Text style={[styles.back, { color: palette.accent }]}>Back to boards</Text>
       </Pressable>
     </Screen>
   );

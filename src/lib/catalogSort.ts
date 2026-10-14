@@ -3,20 +3,20 @@ import type { Post } from "@/src/types/fourchan";
 
 export const CATALOG_SORT_OPTIONS: { value: CatalogSort; label: string }[] = [
   { value: "bump", label: "Bump" },
-  { value: "newest", label: "Récent" },
-  { value: "oldest", label: "Ancien" },
-  { value: "replies", label: "Réponses" },
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "replies", label: "Replies" },
   { value: "images", label: "Images" },
 ];
 
 export const SORT_DIRECTION_OPTIONS: { value: SortDirection; label: string }[] = [
-  { value: "desc", label: "Décroissant" },
-  { value: "asc", label: "Croissant" },
+  { value: "desc", label: "Descending" },
+  { value: "asc", label: "Ascending" },
 ];
 
 export const CATALOG_VIEW_OPTIONS: { value: CatalogView; label: string }[] = [
-  { value: "grid", label: "Grille" },
-  { value: "list", label: "Liste" },
+  { value: "grid", label: "Grid" },
+  { value: "list", label: "List" },
 ];
 
 function rank(post: Post, index: number, mode: CatalogSort): number {

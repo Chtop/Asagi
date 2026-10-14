@@ -55,9 +55,9 @@ function schedule<T>(task: () => Promise<T>): Promise<T> {
 }
 
 function messageForStatus(status: number): string {
-  if (status === 404) return "Introuvable. Le board ou le thread n'existe plus.";
-  if (status === 0) return "Pas de réseau, ou l'API ne répond pas.";
-  return `L'API a répondu ${status}.`;
+  if (status === 404) return "Not found. That board or thread is gone.";
+  if (status === 0) return "No network, or the API is not responding.";
+  return `The API returned ${status}.`;
 }
 
 export async function getJson<T>(path: string): Promise<T> {
@@ -88,7 +88,7 @@ export async function getJson<T>(path: string): Promise<T> {
     try {
       body = JSON.parse(raw) as T;
     } catch {
-      throw new ApiError(response.status, "Réponse illisible de l'API.");
+      throw new ApiError(response.status, "The API response could not be read.");
     }
 
     cache.set(url, {

@@ -92,6 +92,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
 export function useAppTheme(): SettingsContextValue {
   const value = useContext(SettingsContext);
-  if (!value) throw new Error("useAppTheme doit être utilisé dans SettingsProvider.");
+  if (!value) throw new Error("useAppTheme must be used inside SettingsProvider.");
   return value;
 }

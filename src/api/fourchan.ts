@@ -25,7 +25,7 @@ export async function fetchBoards(): Promise<Board[]> {
 }
 
 export async function fetchCatalog(board: string): Promise<Post[]> {
-  if (!isBoardCode(board)) throw new Error("Code de board invalide.");
+  if (!isBoardCode(board)) throw new Error("Invalid board code.");
   const pages = await getJson<CatalogPage[]>(`/${board}/catalog.json`);
   if (!Array.isArray(pages)) return [];
   return pages.flatMap((page) => (Array.isArray(page?.threads) ? page.threads.filter(isPost) : []));
@@ -33,7 +33,7 @@ export async function fetchCatalog(board: string): Promise<Post[]> {
 
 export async function fetchThread(board: string, threadId: string): Promise<Post[]> {
   const id = parseThreadId(threadId);
-  if (!isBoardCode(board) || id == null) throw new Error("Adresse de thread invalide.");
+  if (!isBoardCode(board) || id == null) throw new Error("Invalid thread address.");
   const payload = await getJson<ThreadResponse>(`/${board}/thread/${id}.json`);
   const posts = Array.isArray(payload?.posts) ? payload.posts.filter(isPost) : [];
   return posts;

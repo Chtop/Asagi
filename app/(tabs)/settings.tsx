@@ -13,13 +13,13 @@ import { useAppTheme } from "@/src/state/SettingsContext";
 import type { BoardFilter, ThemePreference } from "@/src/storage/model";
 
 const THEMES: { value: ThemePreference; label: string }[] = [
-  { value: "dark", label: "Sombre" },
-  { value: "light", label: "Clair" },
-  { value: "system", label: "Système" },
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
+  { value: "system", label: "System" },
 ];
 
 const FILTERS: { value: BoardFilter; label: string }[] = [
-  { value: "all", label: "Tous" },
+  { value: "all", label: "All" },
   { value: "sfw", label: "Worksafe" },
   { value: "nsfw", label: "NSFW" },
 ];
@@ -54,12 +54,12 @@ export default function SettingsScreen() {
   );
 
   const cacheLabel =
-    cacheBytes == null ? "Taille du cache indisponible" : `Cache : ${formatBytes(cacheBytes) ?? "0 o"}`;
+    cacheBytes == null ? "Cache size unavailable" : `Cache: ${formatBytes(cacheBytes) ?? "0 B"}`;
 
   const confirm = (title: string, action: () => Promise<void>) => {
-    Alert.alert(title, "Cette action est définitive sur cet appareil.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Effacer", style: "destructive", onPress: () => void action() },
+    Alert.alert(title, "This cannot be undone on this device.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Clear", style: "destructive", onPress: () => void action() },
     ]);
   };
 
@@ -67,60 +67,60 @@ export default function SettingsScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
-          <Text style={[styles.heading, { color: palette.text }]}>Thème</Text>
+          <Text style={[styles.heading, { color: palette.text }]}>Theme</Text>
           <FilterChips options={THEMES} value={settings.theme} onChange={setTheme} />
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.heading, { color: palette.text }]}>Boards affichés</Text>
+          <Text style={[styles.heading, { color: palette.text }]}>Boards shown</Text>
           <FilterChips options={FILTERS} value={settings.boardFilter} onChange={setBoardFilter} />
           <Text style={[styles.note, { color: palette.textMuted }]}>
-            Le même filtre est disponible sur la liste des boards. Worksafe et NSFW viennent du champ ws_board de l'API.
+            The same filter is on the board list. Worksafe and NSFW come from the API ws_board field.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.heading, { color: palette.text }]}>Affichage des threads</Text>
-          <Text style={[styles.note, { color: palette.textMuted }]}>Vue par défaut</Text>
+          <Text style={[styles.heading, { color: palette.text }]}>Thread display</Text>
+          <Text style={[styles.note, { color: palette.textMuted }]}>Default view</Text>
           <FilterChips options={CATALOG_VIEW_OPTIONS} value={settings.catalogView} onChange={setCatalogView} />
-          <Text style={[styles.note, { color: palette.textMuted }]}>Tri par défaut</Text>
+          <Text style={[styles.note, { color: palette.textMuted }]}>Default sort</Text>
           <FilterChips options={CATALOG_SORT_OPTIONS} value={settings.catalogSort} onChange={setCatalogSort} />
-          <Text style={[styles.note, { color: palette.textMuted }]}>Sens par défaut</Text>
+          <Text style={[styles.note, { color: palette.textMuted }]}>Default direction</Text>
           <FilterChips
             options={SORT_DIRECTION_OPTIONS}
             value={settings.catalogSortDirection}
             onChange={setCatalogSortDirection}
           />
           <Text style={[styles.note, { color: palette.textMuted }]}>
-            Décroissant met en tête le bump d'origine, le message le plus récent, ou le plus grand nombre. Le tri
-            choisi sur un board ne change pas ce réglage. La vue, elle, est mémorisée. L'historique ramène toujours au
-            dernier message affiché.
+            Descending puts the original bump order, the newest post, or the highest count first. The sort you pick on
+            a board does not change this setting. The view is remembered. History always returns to the last post on
+            screen.
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.heading, { color: palette.text }]}>Cache</Text>
           <Text style={[styles.note, { color: palette.textMuted }]}>
-            {cacheLabel}. Le vider retire les fichiers temporaires. L'historique, les favoris, le dernier message lu et
-            les médias gardés restent.
+            {cacheLabel}. Clearing it removes temporary files. History, favorites, the last post you read, and saved
+            media stay.
           </Text>
           <Pressable
             accessibilityRole="button"
             disabled={clearing}
             onPress={() => {
               Alert.alert(
-                "Vider le cache",
-                "Les images déjà téléchargées seront retéléchargées. L'historique, les favoris, le dernier message lu et les médias gardés restent.",
+                "Clear cache",
+                "Downloaded images will be downloaded again. History, favorites, the last post you read, and saved media stay.",
                 [
-                  { text: "Annuler", style: "cancel" },
+                  { text: "Cancel", style: "cancel" },
                   {
-                    text: "Vider",
+                    text: "Clear",
                     style: "destructive",
                     onPress: () => {
                       setClearing(true);
                       void clearAppCache()
                         .then(() => setCacheBytes(readCacheSize()))
-                        .catch(() => Alert.alert("Cache", "Impossible de vider le cache."))
+                        .catch(() => Alert.alert("Cache", "Could not clear the cache."))
                         .finally(() => setClearing(false));
                     },
                   },
@@ -129,33 +129,33 @@ export default function SettingsScreen() {
             }}
             style={[styles.action, { borderColor: palette.border, backgroundColor: palette.surface }]}
           >
-            <Text style={{ color: palette.text, fontWeight: "600" }}>{clearing ? "Vidage…" : "Vider le cache"}</Text>
+            <Text style={{ color: palette.text, fontWeight: "600" }}>{clearing ? "Clearing…" : "Clear cache"}</Text>
           </Pressable>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.heading, { color: palette.text }]}>Sur cet appareil</Text>
+          <Text style={[styles.heading, { color: palette.text }]}>On this device</Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => confirm("Effacer l'historique", clearHistory)}
+            onPress={() => confirm("Clear history", clearHistory)}
             style={[styles.action, { borderColor: palette.border, backgroundColor: palette.surface }]}
           >
-            <Text style={{ color: palette.text, fontWeight: "600" }}>Effacer l'historique ({history.length})</Text>
+            <Text style={{ color: palette.text, fontWeight: "600" }}>Clear history ({history.length})</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => confirm("Effacer les favoris", clearFavorites)}
+            onPress={() => confirm("Clear favorites", clearFavorites)}
             style={[styles.action, { borderColor: palette.border, backgroundColor: palette.surface }]}
           >
-            <Text style={{ color: palette.danger, fontWeight: "600" }}>Effacer les favoris ({favorites.length})</Text>
+            <Text style={{ color: palette.danger, fontWeight: "600" }}>Clear favorites ({favorites.length})</Text>
           </Pressable>
         </View>
 
         <Text style={[styles.note, { color: palette.textMuted }]}>
-          {APP_NAME} {version} lit seulement l'API publique a.4cdn.org. Rien n'est envoyé à un serveur à nous. Les favoris
-          et l'historique restent dans AsyncStorage, sur l'appareil. L'historique retient le dernier message affiché :
-          rouvrir un thread y revient. Effacer l'historique efface ces positions. Les images viennent de i.4cdn.org. Les
-          MP4 passent par le lecteur iOS. Les WebM, le format le plus courant, passent par le lecteur embarqué.
+          {APP_NAME} {version} only reads the public API at a.4cdn.org. Nothing is sent to a server of ours. Favorites
+          and history stay in AsyncStorage on this device. History remembers the last post on screen: opening a thread
+          again returns there. Clearing history clears those positions. Images come from i.4cdn.org. MP4 uses the iOS
+          player. WebM, the most common format, uses the built-in player.
         </Text>
       </ScrollView>
     </Screen>

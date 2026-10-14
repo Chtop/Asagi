@@ -66,7 +66,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       try {
         await saveFavorites(favoritesRef.current);
       } catch {
-        Alert.alert("Stockage", "Impossible d'enregistrer les favoris sur cet appareil.");
+        Alert.alert("Storage", "Could not save favorites on this device.");
       }
     });
     favoritesWrite.current = job.then(
@@ -83,7 +83,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       try {
         await saveHistory(historyRef.current);
       } catch {
-        Alert.alert("Stockage", "Impossible d'enregistrer l'historique sur cet appareil.");
+        Alert.alert("Storage", "Could not save history on this device.");
       }
     });
     historyWrite.current = job.then(
@@ -190,6 +190,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
 export function useLibrary(): LibraryContextValue {
   const value = useContext(LibraryContext);
-  if (!value) throw new Error("useLibrary doit être utilisé dans LibraryProvider.");
+  if (!value) throw new Error("useLibrary must be used inside LibraryProvider.");
   return value;
 }

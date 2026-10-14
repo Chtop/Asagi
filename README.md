@@ -1,26 +1,27 @@
 # Asagi
 
-Lecteur 4chan en lecture seule, prévu pour un iPhone via SideStore. Le titre n'utilise pas la marque 4chan : les conditions de l'API publique l'interdisent dans le nom de l'application.
+Read-only 4chan reader for an iPhone through SideStore. The title does not use the 4chan name: the public API terms forbid it in the application name.
 
-Expo SDK 57 et React Native 0.86. L'identifiant iOS est `app.asagi.reader`.
+Expo SDK 57 and React Native 0.86. The iOS bundle identifier is `app.asagi.reader`. The interface is in English.
 
-## Fonctions
+## Features
 
-- Liste des boards, recherche locale, filtre worksafe / NSFW à partir du champ `ws_board`.
-- Ouverture d'un board ou d'un thread depuis un lien `boards.4chan.org` ou `boards.4channel.org`.
-- Catalogue en grille ou en liste. Tri par bump, date, réponses ou images. Recherche dans le catalogue déjà chargé.
-- Threads complets. Rouvrir un thread ramène au dernier message affiché.
-- Galerie : défilement entre les fichiers du thread, zoom, lecture MP4 et WebM.
-- Citation : le message, ceux qu'il cite, et ceux qui le citent.
-- Enregistrement dans la photothèque. Les WebM passent par le partage, vers Fichiers.
-- Médias gardés dans l'app, partageables depuis l'onglet Médias. Ils survivent au vidage du cache.
-- Taille du cache et vidage en un geste. L'historique, les favoris et la position dans le thread restent.
-- Favoris, historique et réglages stockés sur l'appareil, dans AsyncStorage.
-- Thème sombre, clair ou système.
+- Board list, local search, and a worksafe / NSFW filter from the `ws_board` field.
+- Open a board or a thread from a pasted `boards.4chan.org` or `boards.4channel.org` link.
+- Catalog as a grid or a list. Sort by bump, date, replies, or images. Search the catalog that is already loaded.
+- Full threads. Opening a thread again returns to the last post on screen.
+- Gallery: swipe through the thread's files, zoom, and play MP4 and WebM. The WebM player has play, pause, duration, a timeline, and mute.
+- Quotes: the post, the posts it quotes, and the posts that quote it. Back returns one level at a time.
+- Links in a post open on tap. A board link stays in the app. Other web links open in the browser. Plain post text can be selected and copied.
+- Save to the photo library. WebM goes through the share sheet, to Files.
+- Media kept in the app, shareable from the Media tab. Those files stay when the cache is cleared.
+- Cache size and a one-tap clear. History, favorites, the last read post, and saved media stay.
+- Favorites, history, and settings stored on the device, in AsyncStorage.
+- Dark, light, or system theme.
 
-L'app lit `a.4cdn.org` et `i.4cdn.org` : une requête à la fois, au plus une par seconde, avec `If-Modified-Since`. Rien n'est envoyé à un autre serveur. Les MP4 passent par le lecteur iOS. Les WebM, le format le plus courant des vidéos, sont décodés par un lecteur VLC embarqué, parce que le lecteur iOS ne sait pas les ouvrir.
+The app reads `a.4cdn.org` and `i.4cdn.org`: one request at a time, at most one per second, with `If-Modified-Since`. Nothing is sent to another server. MP4 uses the iOS player. WebM, the most common video format, is decoded by an embedded VLC player, because the iOS player cannot open it.
 
-## Développement
+## Development
 
 Node.js 22.
 
@@ -30,16 +31,16 @@ npm start
 npm run typecheck
 ```
 
-## Installer sur un iPhone
+## Install on an iPhone
 
-Le workflow **Build SideStore IPA** compile, sur un runner macOS, un IPA iPhone non signé. SideStore le signe avec un compte Apple gratuit. Aucun Mac local et aucun abonnement Apple Developer ne sont nécessaires.
+The **Build SideStore IPA** workflow builds an unsigned iPhone IPA on a macOS runner. SideStore signs it with a free Apple account. No local Mac and no Apple Developer subscription are required.
 
-1. Onglet **Actions**, workflow **Build SideStore IPA**, **Run workflow**.
-2. Télécharger [Asagi-unsigned.ipa](https://github.com/Chtop/Asagi/releases/download/sidestore/Asagi-unsigned.ipa). C'est le fichier IPA, pas un zip. Le même lien est dans le résumé du run. Chaque build réussi remplace la release [sidestore](https://github.com/Chtop/Asagi/releases/tag/sidestore).
-3. Installer ce fichier avec SideStore.
+1. Open the **Actions** tab, workflow **Build SideStore IPA**, **Run workflow**.
+2. Download [Asagi-unsigned.ipa](https://github.com/Chtop/Asagi/releases/download/sidestore/Asagi-unsigned.ipa). That is the IPA itself, not a zip. The same link is in the run summary. Each successful build replaces the [sidestore](https://github.com/Chtop/Asagi/releases/tag/sidestore) release.
+3. Install that file with SideStore.
 
-Le build dure environ 20 à 40 minutes. Une app signée avec un compte gratuit expire après environ 7 jours, et trois apps au plus peuvent être installées. Changer `app.asagi.reader` après la première installation compte comme un nouvel App ID.
+The build takes about 20 to 40 minutes. An app signed with a free account expires after about 7 days, and at most three apps can be installed. Changing `app.asagi.reader` after the first install counts as a new App ID.
 
-## Licence
+## License
 
-MIT. Voir [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

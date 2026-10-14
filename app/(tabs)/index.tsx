@@ -12,7 +12,7 @@ import type { BoardFilter } from "@/src/storage/model";
 import type { Board } from "@/src/types/fourchan";
 
 const FILTERS: { value: BoardFilter; label: string }[] = [
-  { value: "all", label: "Tous" },
+  { value: "all", label: "All" },
   { value: "sfw", label: "Worksafe" },
   { value: "nsfw", label: "NSFW" },
 ];
@@ -30,7 +30,7 @@ export default function BoardsScreen() {
   const openParsedLink = (raw: string) => {
     const parsed = parseChanLink(raw);
     if (!parsed) {
-      Alert.alert("Lien", "Ce lien n'est pas reconnu.");
+      Alert.alert("Link", "This link is not recognized.");
       return;
     }
     setLinkDraft(null);
@@ -44,11 +44,11 @@ export default function BoardsScreen() {
   const onOpenLink = () => {
     if (Platform.OS === "ios" && typeof Alert.prompt === "function") {
       Alert.prompt(
-        "Ouvrir un lien",
-        "Colle une adresse de board ou de thread.",
+        "Open a link",
+        "Paste a board or thread address.",
         [
-          { text: "Annuler", style: "cancel" },
-          { text: "Ouvrir", onPress: (value?: string) => openParsedLink(value ?? "") },
+          { text: "Cancel", style: "cancel" },
+          { text: "Open", onPress: (value?: string) => openParsedLink(value ?? "") },
         ],
         "plain-text",
       );
@@ -67,7 +67,7 @@ export default function BoardsScreen() {
       setPhase("ready");
       setBanner(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erreur inconnue.";
+      const message = error instanceof Error ? error.message : "Unknown error.";
       if (mode === "refresh" && hasData.current) setBanner(message);
       else {
         setBanner(message);
@@ -95,7 +95,7 @@ export default function BoardsScreen() {
   if (phase === "loading") {
     return (
       <Screen>
-        <LoadingState label="Chargement des boards…" />
+        <LoadingState label="Loading boards…" />
       </Screen>
     );
   }
@@ -103,7 +103,7 @@ export default function BoardsScreen() {
   if (phase === "error") {
     return (
       <Screen>
-        <ErrorState message={banner ?? "Erreur inconnue."} onRetry={() => void load("initial")} />
+        <ErrorState message={banner ?? "Unknown error."} onRetry={() => void load("initial")} />
       </Screen>
     );
   }
@@ -114,7 +114,7 @@ export default function BoardsScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Rechercher un board"
+          placeholder="Search for a board"
           placeholderTextColor={palette.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -130,7 +130,7 @@ export default function BoardsScreen() {
           onPress={onOpenLink}
           style={[styles.linkButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
         >
-          <Text style={{ color: palette.accent, fontWeight: "700" }}>Ouvrir un lien</Text>
+          <Text style={{ color: palette.accent, fontWeight: "700" }}>Open a link</Text>
         </Pressable>
         {linkDraft != null ? (
           <View style={styles.linkRow}>
@@ -149,7 +149,7 @@ export default function BoardsScreen() {
               ]}
             />
             <Pressable accessibilityRole="button" onPress={() => openParsedLink(linkDraft)} style={styles.linkGo}>
-              <Text style={{ color: palette.accent, fontWeight: "700" }}>Ouvrir</Text>
+              <Text style={{ color: palette.accent, fontWeight: "700" }}>Open</Text>
             </Pressable>
           </View>
         ) : null}
@@ -174,7 +174,7 @@ export default function BoardsScreen() {
           <BoardRow board={item} onPress={() => router.push(boardHref(item.board, item.title))} />
         )}
         ListEmptyComponent={
-          <EmptyState title="Aucun board" detail="Rien ne correspond à cette recherche ou à ce filtre." />
+          <EmptyState title="No boards" detail="Nothing matches this search or filter." />
         }
         contentContainerStyle={visible.length === 0 ? styles.empty : undefined}
       />

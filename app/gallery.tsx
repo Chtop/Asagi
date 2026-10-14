@@ -68,12 +68,14 @@ function GalleryPage({
   width,
   height,
   insetBottom,
+  onScrubbing,
 }: {
   item: GalleryItem;
   active: boolean;
   width: number;
   height: number;
   insetBottom: number;
+  onScrubbing?: (active: boolean) => void;
 }) {
   if (item.kind === "image") return <ZoomImage uri={item.url} width={width} height={height} />;
   if (!active) {
@@ -93,7 +95,9 @@ function GalleryPage({
     );
   }
   if (item.kind === "mp4") return <Mp4Player uri={item.url} width={width} height={height} />;
-  return <WebmPlayer uri={item.url} height={height} insetBottom={insetBottom} />;
+  return (
+    <WebmPlayer uri={item.url} height={height} insetBottom={insetBottom} onScrubbing={onScrubbing} />
+  );
 }
 
 export default function GalleryScreen() {
@@ -103,6 +107,7 @@ export default function GalleryScreen() {
   const { keep } = useSavedMedia();
   const [index, setIndex] = useState(session?.index ?? 0);
   const [busy, setBusy] = useState<"save" | "keep" | "share" | null>(null);
+  const [scrubbing, setScrubbing] = useState(false);
   const listRef = useRef<FlatList<GalleryItem>>(null);
   const jumped = useRef(false);
 
@@ -126,11 +131,11 @@ export default function GalleryScreen() {
         return;
       }
       await saveInPhotoLibrary(uri);
-      Alert.alert("Enregistré", "Le fichier est dans ta photothèque.");
+      Alert.alert("Saved", "The file is in your photo library.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Impossible d'enregistrer.";
+      const message = error instanceof Error ? error.message : "Could not save this file.";
       if (/did not share|cancel/i.test(message)) return;
-      Alert.alert("Enregistrement", message);
+      Alert.alert("Save", message);
     } finally {
       setBusy(null);
     }
@@ -149,12 +154,12 @@ export default function GalleryScreen() {
         postNo: current.postNo,
       });
       Alert.alert(
-        result === "exists" ? "Déjà gardé" : "Gardé",
-        result === "exists" ? "Déjà dans tes médias." : "Gardé dans l'app. Retrouve-le dans l'onglet Médias.",
+        result === "exists" ? "Already kept" : "Kept",
+        result === "exists" ? "Already in your media." : "Kept in the app. Find it in the Media tab.",
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Impossible de garder ce fichier.";
-      Alert.alert("Médias", message);
+      const message = error instanceof Error ? error.message : "Could not keep this file.";
+      Alert.alert("Media", message);
     } finally {
       setBusy(null);
     }
@@ -168,7 +173,7 @@ export default function GalleryScreen() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       if (/did not share|cancel/i.test(message)) return;
-      Alert.alert("Partage", "Impossible de partager ce fichier.");
+      Alert.alert("Share", "Could not share this file.");
     } finally {
       setBusy(null);
     }
@@ -182,6 +187,7 @@ export default function GalleryScreen() {
         data={session.items}
         horizontal
         pagingEnabled
+        scrollEnabled={!scrubbing}
         bounces={false}
         extraData={`${index}:${width}`}
         initialScrollIndex={session.index}
@@ -210,6 +216,7 @@ export default function GalleryScreen() {
               width={width}
               height={height}
               insetBottom={insets.bottom + 16}
+              onScrubbing={setScrubbing}
             />
           </View>
         )}
@@ -222,39 +229,39 @@ export default function GalleryScreen() {
           {local ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Partager"
+              accessibilityLabel="Share"
               onPress={() => void onShare()}
               disabled={busy !== null}
               style={styles.action}
             >
-              <Text style={styles.actionText}>{busy === "share" ? "…" : "Partager"}</Text>
+              <Text style={styles.actionText}>{busy === "share" ? "…" : "Share"}</Text>
             </Pressable>
           ) : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Garder dans l'app"
+              accessibilityLabel="Keep in the app"
               onPress={() => void onKeep()}
               disabled={busy !== null}
               style={styles.action}
             >
-              <Text style={styles.actionText}>{busy === "keep" ? "…" : "Garder"}</Text>
+              <Text style={styles.actionText}>{busy === "keep" ? "…" : "Keep"}</Text>
             </Pressable>
           )}
           {local && current.kind === "webm" ? null : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={current.kind === "webm" ? "Enregistrer dans Fichiers" : "Enregistrer dans la photothèque"}
+              accessibilityLabel={current.kind === "webm" ? "Save to Files" : "Save to Photos"}
               onPress={() => void onSave()}
               disabled={busy !== null}
               style={styles.action}
             >
               <Text style={styles.actionText}>
-                {busy === "save" ? "…" : current.kind === "webm" ? "Dans Fichiers" : "Enregistrer"}
+                {busy === "save" ? "…" : current.kind === "webm" ? "To Files" : "Save"}
               </Text>
             </Pressable>
           )}
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.action}>
-            <Text style={styles.actionText}>Fermer</Text>
+            <Text style={styles.actionText}>Close</Text>
           </Pressable>
         </View>
       </View>

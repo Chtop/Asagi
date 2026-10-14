@@ -1,18 +1,46 @@
 import type { Post } from "@/src/types/fourchan";
 
-export type QuoteSession = {
+export type QuoteFrame = {
   board: string;
   focusId: number;
   threadId: number;
   posts?: Post[];
+  /** Change à chaque écriture, pour qu'un écran réutilisé relise le bon fil. */
+  revision: number;
 };
 
-let current: QuoteSession | null = null;
+type QuoteInput = Omit<QuoteFrame, "revision">;
 
-export function setQuoteSession(session: QuoteSession): void {
-  current = session;
+let frames: QuoteFrame[] = [];
+let revision = 0;
+
+function stamp(frame: QuoteInput): QuoteFrame {
+  revision += 1;
+  return { ...frame, revision };
 }
 
-export function readQuoteSession(): QuoteSession | null {
-  return current;
+/** Remplace la pile. Le thread ouvre toujours le niveau 0. */
+export function openQuotes(frame: QuoteInput): void {
+  frames = [stamp(frame)];
+}
+
+/**
+ * Coupe les niveaux au-dessus de celui qui est affiché, puis ajoute le suivant.
+ * Le numéro renvoyé est celui de la route à pousser.
+ */
+export function pushQuoteFrame(frame: QuoteInput, fromLevel: number): number {
+  const base = fromLevel >= 0 ? fromLevel + 1 : 0;
+  frames = frames.slice(0, base);
+  frames.push(stamp(frame));
+  return frames.length - 1;
+}
+
+export function readQuoteFrame(level: number): QuoteFrame | null {
+  return frames[level] ?? null;
+}
+
+export function storeQuotePosts(level: number, posts: Post[]): void {
+  const frame = frames[level];
+  if (!frame) return;
+  frames[level] = stamp({ ...frame, posts });
 }

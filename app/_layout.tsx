@@ -81,7 +81,11 @@ function RootGate() {
           }}
         />
         <Stack.Screen
-          name="quotes"
+          name="quotes/[level]"
+          getId={({ params }) => {
+            const value = (params as { level?: string | string[] } | undefined)?.level;
+            return Array.isArray(value) ? (value[0] ?? "0") : (value ?? "0");
+          }}
           options={{
             headerShown: false,
             gestureEnabled: true,

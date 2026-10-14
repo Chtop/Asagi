@@ -23,7 +23,7 @@ export default function HistoryScreen() {
             thumbnailUrl={item.thumbnailUrl}
             replyCount={item.replyCount}
             at={item.openedAt}
-            atLabel="Ouvert"
+            atLabel="Opened"
             onPress={() => router.push(threadHref(item.board, item.threadId))}
             onRemove={() => {
               void removeHistory(item.board, item.threadId);
@@ -31,7 +31,7 @@ export default function HistoryScreen() {
           />
         )}
         ListEmptyComponent={
-          <EmptyState title="Historique vide" detail="Les threads ouverts apparaîtront ici, du plus récent au plus ancien." />
+          <EmptyState title="No history" detail="Threads you open show up here, newest first." />
         }
       />
     </Screen>

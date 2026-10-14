@@ -45,23 +45,23 @@ function PostCardComponent({
       ]}
     >
       <View style={styles.head}>
-        <Text style={[styles.name, { color: palette.text }]}>
+        <Text selectable style={[styles.name, { color: palette.text }]}>
           {name}
           {post.trip ? <Text style={{ color: palette.textMuted }}>{` ${post.trip}`}</Text> : null}
         </Text>
-        <Text style={[styles.time, { color: palette.textMuted }]}>{formatPostTime(post.time)}</Text>
+        <Text selectable style={[styles.time, { color: palette.textMuted }]}>{formatPostTime(post.time)}</Text>
       </View>
-      <Text style={[styles.no, { color: palette.textMuted }]}>
+      <Text selectable style={[styles.no, { color: palette.textMuted }]}>
         #{post.no}
         {post.capcode ? ` · ${post.capcode}` : ""}
         {op ? " · OP" : ""}
       </Text>
-      {subject ? <Text style={[styles.subject, { color: palette.text }]}>{subject}</Text> : null}
+      {subject ? <Text selectable style={[styles.subject, { color: palette.text }]}>{subject}</Text> : null}
       <MediaBlock board={board} post={post} onOpen={() => onOpenMedia(post.no)} />
       <CommentBody html={post.com} onQuote={onQuote} />
       {citedBy.length > 0 ? (
         <Text style={styles.cited}>
-          <Text style={{ color: palette.textMuted }}>Cité par </Text>
+          <Text style={{ color: palette.textMuted }}>Cited by </Text>
           {citedBy.map((id, index) => (
             <Text
               key={id}

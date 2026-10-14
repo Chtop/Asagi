@@ -27,7 +27,7 @@ const SavedMediaContext = createContext<SavedMediaContextValue | null>(null);
 
 function safeFileName(name: string): string {
   const cleaned = name.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(0, 80);
-  return cleaned || "fichier";
+  return cleaned || "file";
 }
 
 function dropFile(id: string) {
@@ -69,7 +69,7 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
       try {
         await saveSavedMedia(itemsRef.current);
       } catch {
-        Alert.alert("Stockage", "Impossible d'enregistrer la liste des médias.");
+        Alert.alert("Storage", "Could not save the media list.");
       }
     });
     write.current = job.then(
@@ -83,7 +83,7 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
     (input: KeepInput): Promise<"saved" | "exists"> => {
       const run = keepGate.current.then(async (): Promise<"saved" | "exists"> => {
         if (!/^https?:\/\//i.test(input.url)) {
-          throw new Error("Impossible de garder ce fichier.");
+          throw new Error("Could not keep this file.");
         }
         if (itemsRef.current.some((item) => item.sourceUrl === input.url)) return "exists";
 
@@ -95,7 +95,7 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
           bytes = Number.isFinite(file.size) ? file.size : null;
         } catch {
           dropFile(id);
-          throw new Error("Impossible de garder ce fichier.");
+          throw new Error("Could not keep this file.");
         }
 
         if (itemsRef.current.some((item) => item.sourceUrl === input.url)) {
@@ -137,7 +137,7 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
   const share = useCallback(async (item: SavedMedia) => {
     const file = savedFile(item.filename);
     if (!file.exists) {
-      Alert.alert("Média", "Ce fichier n'est plus sur l'appareil.");
+      Alert.alert("Media", "This file is no longer on the device.");
       return;
     }
     try {
@@ -145,7 +145,7 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       if (/did not share|cancel/i.test(message)) return;
-      Alert.alert("Partage", "Impossible de partager ce fichier.");
+      Alert.alert("Share", "Could not share this file.");
     }
   }, []);
 
@@ -159,6 +159,6 @@ export function SavedMediaProvider({ children }: { children: ReactNode }) {
 
 export function useSavedMedia(): SavedMediaContextValue {
   const value = useContext(SavedMediaContext);
-  if (!value) throw new Error("useSavedMedia doit être utilisé dans SavedMediaProvider.");
+  if (!value) throw new Error("useSavedMedia must be used inside SavedMediaProvider.");
   return value;
 }

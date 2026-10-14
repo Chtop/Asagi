@@ -1,3 +1,5 @@
+import { isBoardCode } from "@/src/api/ids";
+
 export type TextStyleFlags = {
   quote: boolean;
   spoiler: boolean;
@@ -15,6 +17,7 @@ export type Segment =
 export type QuoteTarget =
   | { kind: "post"; postId: number }
   | { kind: "thread"; board: string; threadId: number; postId?: number }
+  | { kind: "board"; board: string }
   | { kind: "url"; url: string };
 
 type Frame = TextStyleFlags & {
@@ -110,16 +113,77 @@ function frameFrom(tag: { name: string; attrs: Record<string, string> }): Frame 
   };
 }
 
+function countChar(value: string, char: string): number {
+  let count = 0;
+  for (const item of value) if (item === char) count += 1;
+  return count;
+}
+
+/** La ponctuation finale reste du texte. Une parenthèse fermante ne part que si elle est en trop. */
+function trimUrl(raw: string): string {
+  let url = raw;
+  while (url.length > 0) {
+    const last = url[url.length - 1];
+    if (/[.,;:!?'"]/.test(last)) {
+      url = url.slice(0, -1);
+      continue;
+    }
+    if (last === ")" && countChar(url, ")") > countChar(url, "(")) {
+      url = url.slice(0, -1);
+      continue;
+    }
+    if (last === "]" && countChar(url, "]") > countChar(url, "[")) {
+      url = url.slice(0, -1);
+      continue;
+    }
+    break;
+  }
+  return url;
+}
+
+function isLinkable(url: string): boolean {
+  if (url.length < 10 || /^(javascript|data|vbscript):/i.test(url)) return false;
+  return /^(?:https?:\/\/|\/\/)[^\s/?#]+/i.test(url);
+}
+
+/** Les URL nues de 4chan ne sont pas toujours dans un <a>, et <wbr> les coupe. */
+function autolink(text: string, dead: boolean, style: TextStyleFlags): Segment[] {
+  const segments: Segment[] = [];
+  const re = /(?:https?:\/\/|\/\/)[^\s<>"']+/gi;
+  let last = 0;
+  for (const match of text.matchAll(re)) {
+    const raw = match[0];
+    const index = match.index ?? 0;
+    const url = trimUrl(raw);
+    if (!isLinkable(url)) continue;
+    if (index > last) segments.push({ type: "text", text: text.slice(last, index), dead, style });
+    segments.push({
+      type: "link",
+      text: url,
+      href: url.startsWith("//") ? `https:${url}` : url,
+      dead,
+      style,
+    });
+    last = index + url.length;
+  }
+  if (last < text.length) segments.push({ type: "text", text: text.slice(last), dead, style });
+  return segments;
+}
+
 /**
  * HTML limité des commentaires : br, greentext, quotelinks, spoilers, emphase.
+ * <wbr> ne coupe pas le texte : 4chan s'en sert au milieu des URL.
  * Pas de WebView : le texte reste du texte, les liens sont filtrés par classifyHref.
  */
 export function parseComment(html: string): Segment[] {
   const segments: Segment[] = [];
   const stack: Frame[] = [];
+  let buffer = "";
 
-  const pushText = (raw: string) => {
-    const text = decodeEntities(raw);
+  const flush = () => {
+    if (!buffer) return;
+    const text = decodeEntities(buffer);
+    buffer = "";
     if (!text) return;
     const current = snapshot(stack);
     if (current.href) {
@@ -132,7 +196,7 @@ export function parseComment(html: string): Segment[] {
       });
       return;
     }
-    segments.push({ type: "text", text, dead: current.dead, style: current });
+    segments.push(...autolink(text, current.dead, current));
   };
 
   const tokens = html.match(/<[^>]+>|[^<]+/g) ?? [];
@@ -140,19 +204,22 @@ export function parseComment(html: string): Segment[] {
     if (!token.startsWith("<")) {
       const parts = token.split("\n");
       parts.forEach((part, index) => {
-        if (index > 0) segments.push({ type: "break" });
-        if (part) pushText(part);
+        if (index > 0) {
+          flush();
+          segments.push({ type: "break" });
+        }
+        if (part) buffer += part;
       });
       continue;
     }
 
     const tag = readTag(token);
-    if (!tag) continue;
+    if (!tag || tag.name === "wbr") continue;
+    flush();
     if (tag.name === "br") {
       segments.push({ type: "break" });
       continue;
     }
-    if (tag.name === "wbr") continue;
     if (tag.closing) {
       if (stack.length > 0) stack.pop();
       continue;
@@ -160,6 +227,7 @@ export function parseComment(html: string): Segment[] {
     stack.push(frameFrom(tag));
   }
 
+  flush();
   return segments;
 }
 
@@ -169,7 +237,12 @@ function parseId(value: string | undefined): number | null {
   return Number.isSafeInteger(id) ? id : null;
 }
 
-/** Ne renvoie un lien externe que pour http(s). javascript: et data: sont ignorés. */
+const THREAD_HREF =
+  /^(?:(?:https?:)?\/\/boards\.4chan(?:nel)?\.org)?\/([a-z0-9]{1,8})\/thread\/(\d+)(?:\/[^#?\s]*)?(?:#p(\d+))?\/?$/i;
+const BOARD_HREF =
+  /^(?:(?:https?:)?\/\/boards\.4chan(?:nel)?\.org)?\/([a-z0-9]{1,8})(?:\/(?:catalog)?)?(?:[#?].*)?\/?$/i;
+
+/** javascript: et data: sont ignorés. Un board 4chan s'ouvre dans l'app, le reste du http(s) dans le navigateur. */
 export function classifyHref(href: string): QuoteTarget | null {
   const value = decodeEntities(href.trim());
   if (!value || /^(javascript|data|vbscript):/i.test(value)) return null;
@@ -180,24 +253,22 @@ export function classifyHref(href: string): QuoteTarget | null {
     return postId == null ? null : { kind: "post", postId };
   }
 
-  const relative = /^\/([a-z0-9]{1,8})\/thread\/(\d+)(?:#p(\d+))?\/?$/.exec(value);
-  const absolute =
-    /^(?:https?:)?\/\/boards\.4chan(?:nel)?\.org\/([a-z0-9]{1,8})\/thread\/(\d+)(?:#p(\d+))?\/?$/.exec(
-      value,
-    );
-  const thread = relative ?? absolute;
+  const thread = THREAD_HREF.exec(value);
   if (thread) {
+    const board = thread[1].toLowerCase();
     const threadId = parseId(thread[2]);
-    if (threadId == null) return null;
+    if (!isBoardCode(board) || threadId == null) return null;
     const postId = parseId(thread[3]);
-    return {
-      kind: "thread",
-      board: thread[1],
-      threadId,
-      postId: postId ?? undefined,
-    };
+    return { kind: "thread", board, threadId, postId: postId ?? undefined };
   }
 
+  const boardLink = BOARD_HREF.exec(value);
+  if (boardLink) {
+    const board = boardLink[1].toLowerCase();
+    if (isBoardCode(board)) return { kind: "board", board };
+  }
+
+  if (/^\/\//.test(value)) return { kind: "url", url: `https:${value}` };
   if (/^https?:\/\//i.test(value)) return { kind: "url", url: value };
   return null;
 }

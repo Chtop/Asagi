@@ -23,7 +23,7 @@ export default function FavoritesScreen() {
             thumbnailUrl={item.thumbnailUrl}
             replyCount={item.replyCount}
             at={item.savedAt}
-            atLabel="Enregistré"
+            atLabel="Saved"
             onPress={() => router.push(threadHref(item.board, item.threadId))}
             onRemove={() => {
               void toggleFavorite(item);
@@ -32,8 +32,8 @@ export default function FavoritesScreen() {
         )}
         ListEmptyComponent={
           <EmptyState
-            title="Aucun favori"
-            detail="Ouvre un thread et appuie sur Favori. La liste reste sur cet appareil."
+            title="No favorites"
+            detail="Open a thread and tap Favorite. The list stays on this device."
           />
         }
       />

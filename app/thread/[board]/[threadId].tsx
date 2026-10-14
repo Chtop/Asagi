@@ -11,11 +11,11 @@ import { ErrorBanner, ErrorState, LoadingState, Screen } from "@/src/components/
 import { threadTitle } from "@/src/lib/format";
 import { galleryItems } from "@/src/lib/gallery";
 import type { QuoteTarget } from "@/src/lib/html";
-import { galleryHref, quotesHref } from "@/src/lib/navigation";
+import { boardHref, galleryHref, quotesHref } from "@/src/lib/navigation";
 import { citedByMap } from "@/src/lib/quotes";
 import { one } from "@/src/lib/route";
 import { setGallerySession } from "@/src/state/gallerySession";
-import { setQuoteSession } from "@/src/state/quoteSession";
+import { openQuotes } from "@/src/state/quoteSession";
 import { indexForPostNo } from "@/src/storage/model";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import { useLibrary } from "@/src/state/LibraryContext";
@@ -191,7 +191,7 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
     async (mode: "initial" | "refresh") => {
       const request = ++requestSeq.current;
       if (!valid) {
-        setBanner("Adresse de thread invalide.");
+        setBanner("Invalid thread address.");
         setPhase("error");
         return;
       }
@@ -203,10 +203,10 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
         hasData.current = next.length > 0;
         setPosts(next);
         setPhase("ready");
-        setBanner(next.length === 0 ? "Ce thread ne contient aucun post." : null);
+        setBanner(next.length === 0 ? "This thread has no posts." : null);
       } catch (error) {
         if (!alive.current || request !== requestSeq.current) return;
-        const message = error instanceof Error ? error.message : "Erreur inconnue.";
+        const message = error instanceof Error ? error.message : "Unknown error.";
         if (mode === "refresh" && hasData.current) setBanner(message);
         else {
           setBanner(message);
@@ -338,27 +338,31 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
     (target: QuoteTarget) => {
       if (target.kind === "url") {
         Linking.openURL(target.url).catch(() => {
-          Alert.alert("Lien", "Impossible d'ouvrir ce lien.");
+          Alert.alert("Link", "Could not open this link.");
         });
+        return;
+      }
+      if (target.kind === "board") {
+        router.push(boardHref(target.board, `/${target.board}/`));
         return;
       }
       const threadNo = Number(threadId);
       if (target.kind === "post" || (target.board === board && target.threadId === threadNo)) {
         const focusId = target.kind === "post" ? target.postId : (target.postId ?? target.threadId);
         if (!posts.some((post) => post.no === focusId)) {
-          Alert.alert("Citation", "Ce post n'est pas dans ce thread.");
+          Alert.alert("Quote", "This post is not in this thread.");
           return;
         }
-        setQuoteSession({ board, posts, focusId, threadId: threadNo });
-        router.push(quotesHref());
+        openQuotes({ board, posts, focusId, threadId: threadNo });
+        router.push(quotesHref(0));
         return;
       }
-      setQuoteSession({
+      openQuotes({
         board: target.board,
         threadId: target.threadId,
         focusId: target.postId ?? target.threadId,
       });
-      router.push(quotesHref());
+      router.push(quotesHref(0));
     },
     [board, posts, threadId],
   );
@@ -395,15 +399,15 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
               disabled={!op}
             >
               <Text style={{ color: favorite ? palette.accent : palette.text, fontWeight: "700" }}>
-                {favorite ? "En favori" : "Favori"}
+                {favorite ? "Favorited" : "Favorite"}
               </Text>
             </Pressable>
           ),
         }}
       />
-      {phase === "loading" ? <LoadingState label="Chargement du thread…" /> : null}
+      {phase === "loading" ? <LoadingState label="Loading thread…" /> : null}
       {phase === "error" ? (
-        <ErrorState message={banner ?? "Erreur inconnue."} onRetry={() => void load("initial")} />
+        <ErrorState message={banner ?? "Unknown error."} onRetry={() => void load("initial")} />
       ) : null}
       {phase === "ready" ? (
         <View style={styles.body}>
@@ -461,7 +465,7 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
           </View>
           {revealed ? null : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.background }]} pointerEvents="none">
-              <LoadingState label="Retour au message…" />
+              <LoadingState label="Returning to your post…" />
             </View>
           )}
         </View>

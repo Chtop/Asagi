@@ -8,7 +8,7 @@ export function Screen({ children }: { children: ReactNode }) {
   return <View style={[styles.screen, { backgroundColor: palette.background }]}>{children}</View>;
 }
 
-export function LoadingState({ label = "Chargement…" }: { label?: string }) {
+export function LoadingState({ label = "Loading…" }: { label?: string }) {
   const { palette } = useAppTheme();
   return (
     <View style={styles.centered}>
@@ -32,7 +32,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   const { palette } = useAppTheme();
   return (
     <View style={styles.centered}>
-      <Text style={[styles.title, { color: palette.text }]}>Échec du chargement</Text>
+      <Text style={[styles.title, { color: palette.text }]}>Could not load</Text>
       <Text style={[styles.muted, { color: palette.textMuted }]}>{message}</Text>
       {onRetry ? (
         <Pressable
@@ -40,7 +40,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
           onPress={onRetry}
           style={[styles.button, { backgroundColor: palette.accent }]}
         >
-          <Text style={{ color: palette.accentText, fontWeight: "700" }}>Réessayer</Text>
+          <Text style={{ color: palette.accentText, fontWeight: "700" }}>Retry</Text>
         </Pressable>
       ) : null}
     </View>

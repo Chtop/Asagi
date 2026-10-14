@@ -47,15 +47,15 @@ export function ThreadLinkRow({
           </Text>
           <Text style={{ color: palette.textMuted, fontSize: 12 }}>
             /{board}/{threadId}
-            {replyCount != null ? ` · ${replyCount} réponses` : ""}
+            {replyCount != null ? ` · ${replyCount === 1 ? "1 reply" : `${replyCount} replies`}` : ""}
           </Text>
           <Text style={{ color: palette.textMuted, fontSize: 12 }}>
             {atLabel} {formatWhen(at)}
           </Text>
         </View>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Retirer" hitSlop={8} onPress={onRemove}>
-        <Text style={{ color: palette.danger, fontWeight: "700" }}>Retirer</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Remove" hitSlop={8} onPress={onRemove}>
+        <Text style={{ color: palette.danger, fontWeight: "700" }}>Remove</Text>
       </Pressable>
     </View>
   );

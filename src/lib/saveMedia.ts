@@ -7,7 +7,7 @@ export async function downloadToCache(url: string, filename: string): Promise<st
     const file = await File.downloadFileAsync(url, destination, { idempotent: true });
     return file.uri;
   } catch {
-    throw new Error("Impossible de télécharger ce fichier.");
+    throw new Error("Could not download this file.");
   }
 }
 
@@ -15,11 +15,11 @@ export async function downloadToCache(url: string, filename: string): Promise<st
 export async function saveInPhotoLibrary(localUri: string): Promise<void> {
   const permission = await requestPermissionsAsync(true);
   if (!permission.granted) {
-    throw new Error("Autorise l'accès à la photothèque pour enregistrer.");
+    throw new Error("Allow photo library access to save.");
   }
   try {
     await saveToLibraryAsync(localUri);
   } catch {
-    throw new Error("Impossible d'enregistrer dans la photothèque.");
+    throw new Error("Could not save to the photo library.");
   }
 }

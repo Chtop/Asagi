@@ -11,6 +11,9 @@
       "bundleIdentifier": "app.asagi.reader",
       "buildNumber": "1",
       "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "en"
+      },
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -52,14 +55,14 @@
       [
         "expo-libvlc-player",
         {
-          "localNetworkPermission": "Le lecteur vidéo peut chercher des appareils sur le réseau local."
+          "localNetworkPermission": "The video player may look for devices on the local network."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Asagi enregistre les images et les vidéos dans ta photothèque.",
-          "savePhotosPermission": "Asagi enregistre les images et les vidéos dans ta photothèque.",
+          "photosPermission": "Asagi saves images and videos to your photo library.",
+          "savePhotosPermission": "Asagi saves images and videos to your photo library.",
           "isAccessMediaLocationEnabled": false,
           "granularPermissions": ["photo", "video"]
         }
