@@ -6,13 +6,16 @@ import type { ViewToken } from "@react-native/virtualized-lists";
 import { fetchThread } from "@/src/api/fourchan";
 import { isBoardCode } from "@/src/api/ids";
 import { thumbnailFor } from "@/src/api/media";
-import { ImageViewer } from "@/src/components/ImageViewer";
 import { PostCard } from "@/src/components/PostCard";
 import { ErrorBanner, ErrorState, LoadingState, Screen } from "@/src/components/ui";
 import { threadTitle } from "@/src/lib/format";
+import { galleryItems } from "@/src/lib/gallery";
 import type { QuoteTarget } from "@/src/lib/html";
-import { threadHref } from "@/src/lib/navigation";
+import { galleryHref, quotesHref } from "@/src/lib/navigation";
+import { citedByMap } from "@/src/lib/quotes";
 import { one } from "@/src/lib/route";
+import { setGallerySession } from "@/src/state/gallerySession";
+import { setQuoteSession } from "@/src/state/quoteSession";
 import { indexForPostNo } from "@/src/storage/model";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import { useLibrary } from "@/src/state/LibraryContext";
@@ -38,8 +41,6 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<string | null>(null);
-  const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [placedKey, setPlacedKey] = useState<string | null>(null);
   const hasData = useRef(false);
   const listRef = useRef<FlatList<Post>>(null);
@@ -246,8 +247,6 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
   useEffect(() => {
     hasData.current = false;
     rememberedKey.current = "";
-    setPlayingKey(null);
-    setViewer(null);
     void load("initial");
     return () => {
       flushRef.current();
@@ -322,50 +321,47 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
     }, ANCHOR_GIVE_UP_MS);
   }, [clearAnchorTimers, phase, placeKey, posts, resume, tryScroll]);
 
-  const indexByNo = useMemo(() => new Map(posts.map((post, index) => [post.no, index])), [posts]);
+  const citedBy = useMemo(() => citedByMap(posts), [posts]);
 
-  const jumpTo = useCallback(
-    (postId: number) => {
-      const index = indexByNo.get(postId);
-      if (index == null) return;
-      anchorLock.current = null;
-      allowSaveRef.current = true;
-      scrollAnimated.current = true;
-      scrollViewPosition.current = 0.05;
-      scrollRetries.current = 0;
-      listRef.current?.scrollToIndex({ index, viewPosition: 0.05, animated: true });
+  const onOpenMedia = useCallback(
+    (postNo: number) => {
+      const items = galleryItems(board, posts);
+      const index = items.findIndex((item) => item.postNo === postNo);
+      if (index < 0) return;
+      setGallerySession({ items, index });
+      router.push(galleryHref());
     },
-    [indexByNo],
+    [board, posts],
   );
 
   const onQuote = useCallback(
     (target: QuoteTarget) => {
-      if (target.kind === "post") {
-        if (!indexByNo.has(target.postId)) {
-          Alert.alert("Citation", "Ce post n'est pas dans le thread affiché.");
-          return;
-        }
-        jumpTo(target.postId);
+      if (target.kind === "url") {
+        Linking.openURL(target.url).catch(() => {
+          Alert.alert("Lien", "Impossible d'ouvrir ce lien.");
+        });
         return;
       }
-      if (target.kind === "thread") {
-        if (target.board === board && String(target.threadId) === threadId) {
-          if (target.postId) jumpTo(target.postId);
+      const threadNo = Number(threadId);
+      if (target.kind === "post" || (target.board === board && target.threadId === threadNo)) {
+        const focusId = target.kind === "post" ? target.postId : (target.postId ?? target.threadId);
+        if (!posts.some((post) => post.no === focusId)) {
+          Alert.alert("Citation", "Ce post n'est pas dans ce thread.");
           return;
         }
-        router.push(threadHref(target.board, target.threadId, target.postId));
+        setQuoteSession({ board, posts, focusId, threadId: threadNo });
+        router.push(quotesHref());
         return;
       }
-      Linking.openURL(target.url).catch(() => {
-        Alert.alert("Lien", "Impossible d'ouvrir ce lien.");
+      setQuoteSession({
+        board: target.board,
+        threadId: target.threadId,
+        focusId: target.postId ?? target.threadId,
       });
+      router.push(quotesHref());
     },
-    [board, indexByNo, jumpTo, threadId],
+    [board, posts, threadId],
   );
-
-  const onOpenImage = useCallback((uri: string) => setViewer(uri), []);
-  const onPlay = useCallback((key: string) => setPlayingKey(key), []);
-  const onStop = useCallback(() => setPlayingKey(null), []);
   const onScrollBeginDrag = useCallback(() => {
     anchorLock.current = null;
     allowSaveRef.current = true;
@@ -456,10 +452,8 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
                   board={board}
                   post={item}
                   op={index === 0}
-                  playing={playingKey === String(item.no)}
-                  onPlay={onPlay}
-                  onStop={onStop}
-                  onOpenImage={onOpenImage}
+                  citedBy={citedBy.get(item.no)}
+                  onOpenMedia={onOpenMedia}
                   onQuote={onQuote}
                 />
               )}
@@ -472,7 +466,6 @@ function ThreadBody({ board, threadId, focus }: { board: string; threadId: strin
           )}
         </View>
       ) : null}
-      <ImageViewer uri={viewer} onClose={() => setViewer(null)} />
     </Screen>
   );
 }

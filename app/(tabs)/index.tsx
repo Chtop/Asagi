@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 
 import { fetchBoards } from "@/src/api/fourchan";
 import { BoardRow } from "@/src/components/BoardRow";
 import { EmptyState, ErrorBanner, ErrorState, FilterChips, LoadingState, Screen } from "@/src/components/ui";
-import { boardHref } from "@/src/lib/navigation";
+import { parseChanLink } from "@/src/lib/chanLink";
+import { boardHref, threadHref } from "@/src/lib/navigation";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { BoardFilter } from "@/src/storage/model";
 import type { Board } from "@/src/types/fourchan";
@@ -23,7 +24,38 @@ export default function BoardsScreen() {
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [refreshing, setRefreshing] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const [linkDraft, setLinkDraft] = useState<string | null>(null);
   const hasData = useRef(false);
+
+  const openParsedLink = (raw: string) => {
+    const parsed = parseChanLink(raw);
+    if (!parsed) {
+      Alert.alert("Lien", "Ce lien n'est pas reconnu.");
+      return;
+    }
+    setLinkDraft(null);
+    if (parsed.kind === "board") {
+      router.push(boardHref(parsed.board, `/${parsed.board}/`));
+      return;
+    }
+    router.push(threadHref(parsed.board, parsed.threadId, parsed.postId));
+  };
+
+  const onOpenLink = () => {
+    if (Platform.OS === "ios" && typeof Alert.prompt === "function") {
+      Alert.prompt(
+        "Ouvrir un lien",
+        "Colle une adresse de board ou de thread.",
+        [
+          { text: "Annuler", style: "cancel" },
+          { text: "Ouvrir", onPress: (value?: string) => openParsedLink(value ?? "") },
+        ],
+        "plain-text",
+      );
+      return;
+    }
+    setLinkDraft("");
+  };
 
   const load = useCallback(async (mode: "initial" | "refresh") => {
     if (mode === "refresh") setRefreshing(true);
@@ -93,6 +125,34 @@ export default function BoardsScreen() {
           ]}
         />
         <FilterChips options={FILTERS} value={settings.boardFilter} onChange={setBoardFilter} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={onOpenLink}
+          style={[styles.linkButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
+        >
+          <Text style={{ color: palette.accent, fontWeight: "700" }}>Ouvrir un lien</Text>
+        </Pressable>
+        {linkDraft != null ? (
+          <View style={styles.linkRow}>
+            <TextInput
+              value={linkDraft}
+              onChangeText={setLinkDraft}
+              placeholder="boards.4chan.org/…/thread/…"
+              placeholderTextColor={palette.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus
+              style={[
+                styles.search,
+                styles.linkField,
+                { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            />
+            <Pressable accessibilityRole="button" onPress={() => openParsedLink(linkDraft)} style={styles.linkGo}>
+              <Text style={{ color: palette.accent, fontWeight: "700" }}>Ouvrir</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <Text style={{ color: palette.textMuted, fontSize: 12 }}>{visible.length} boards</Text>
       </View>
       <ErrorBanner message={banner} />
@@ -131,5 +191,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
+  linkButton: {
+    alignSelf: "flex-start",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  linkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  linkField: { flex: 1 },
+  linkGo: { paddingHorizontal: 4, paddingVertical: 8 },
   empty: { flexGrow: 1 },
 });

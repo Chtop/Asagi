@@ -5,7 +5,10 @@ import { loadSettings, saveSettings } from "@/src/storage/persist";
 import {
   DEFAULT_SETTINGS,
   type BoardFilter,
+  type CatalogSort,
+  type CatalogView,
   type Settings,
+  type SortDirection,
   type ThemePreference,
 } from "@/src/storage/model";
 import { darkPalette, lightPalette, type Palette } from "@/src/theme/palette";
@@ -17,6 +20,9 @@ type SettingsContextValue = {
   dark: boolean;
   setTheme: (theme: ThemePreference) => void;
   setBoardFilter: (boardFilter: BoardFilter) => void;
+  setCatalogSort: (catalogSort: CatalogSort) => void;
+  setCatalogSortDirection: (catalogSortDirection: SortDirection) => void;
+  setCatalogView: (catalogView: CatalogView) => void;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -44,33 +50,41 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     Appearance.setColorScheme(settings.theme === "system" ? "unspecified" : settings.theme);
   }, [settings.theme]);
 
-  const persist = useCallback((next: Settings) => {
-    setSettings(next);
-    saveSettings(next).catch(() => {
-      // Le réglage reste affiché. Un échec disque est rare sur AsyncStorage.
+  const patch = useCallback((partial: Partial<Settings>) => {
+    setSettings((current) => {
+      const next = { ...current, ...partial };
+      saveSettings(next).catch(() => {
+        // Le réglage reste affiché. Un échec disque est rare sur AsyncStorage.
+      });
+      return next;
     });
   }, []);
 
-  const setTheme = useCallback(
-    (theme: ThemePreference) => {
-      persist({ ...settings, theme });
-    },
-    [persist, settings],
+  const setTheme = useCallback((theme: ThemePreference) => patch({ theme }), [patch]);
+  const setBoardFilter = useCallback((boardFilter: BoardFilter) => patch({ boardFilter }), [patch]);
+  const setCatalogSort = useCallback((catalogSort: CatalogSort) => patch({ catalogSort }), [patch]);
+  const setCatalogSortDirection = useCallback(
+    (catalogSortDirection: SortDirection) => patch({ catalogSortDirection }),
+    [patch],
   );
-
-  const setBoardFilter = useCallback(
-    (boardFilter: BoardFilter) => {
-      persist({ ...settings, boardFilter });
-    },
-    [persist, settings],
-  );
+  const setCatalogView = useCallback((catalogView: CatalogView) => patch({ catalogView }), [patch]);
 
   const dark = settings.theme === "light" ? false : settings.theme === "dark" ? true : system !== "light";
   const palette = dark ? darkPalette : lightPalette;
 
   const value = useMemo(
-    () => ({ ready, settings, palette, dark, setTheme, setBoardFilter }),
-    [ready, settings, palette, dark, setTheme, setBoardFilter],
+    () => ({
+      ready,
+      settings,
+      palette,
+      dark,
+      setTheme,
+      setBoardFilter,
+      setCatalogSort,
+      setCatalogSortDirection,
+      setCatalogView,
+    }),
+    [ready, settings, palette, dark, setTheme, setBoardFilter, setCatalogSort, setCatalogSortDirection, setCatalogView],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

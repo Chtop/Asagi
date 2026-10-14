@@ -8,23 +8,23 @@ import { htmlToPlain, type QuoteTarget } from "@/src/lib/html";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { Post } from "@/src/types/fourchan";
 
+const NO_CITATIONS: number[] = [];
+
 function PostCardComponent({
   board,
   post,
   op,
-  playing,
-  onPlay,
-  onStop,
-  onOpenImage,
+  highlight = false,
+  citedBy = NO_CITATIONS,
+  onOpenMedia,
   onQuote,
 }: {
   board: string;
   post: Post;
   op: boolean;
-  playing: boolean;
-  onPlay: (key: string) => void;
-  onStop: () => void;
-  onOpenImage: (uri: string) => void;
+  highlight?: boolean;
+  citedBy?: number[];
+  onOpenMedia: (postNo: number) => void;
   onQuote: (target: QuoteTarget) => void;
 }) {
   const { palette } = useAppTheme();
@@ -37,9 +37,10 @@ function PostCardComponent({
         styles.card,
         {
           backgroundColor: palette.surface,
-          borderColor: palette.border,
-          borderLeftColor: op ? palette.accent : palette.border,
-          borderLeftWidth: op ? 3 : StyleSheet.hairlineWidth,
+          borderColor: highlight ? palette.accent : palette.border,
+          borderWidth: highlight ? 2 : StyleSheet.hairlineWidth,
+          borderLeftColor: highlight || op ? palette.accent : palette.border,
+          borderLeftWidth: highlight ? 2 : op ? 3 : StyleSheet.hairlineWidth,
         },
       ]}
     >
@@ -56,15 +57,24 @@ function PostCardComponent({
         {op ? " · OP" : ""}
       </Text>
       {subject ? <Text style={[styles.subject, { color: palette.text }]}>{subject}</Text> : null}
+      <MediaBlock board={board} post={post} onOpen={() => onOpenMedia(post.no)} />
       <CommentBody html={post.com} onQuote={onQuote} />
-      <MediaBlock
-        board={board}
-        post={post}
-        playing={playing}
-        onPlay={() => onPlay(String(post.no))}
-        onStop={onStop}
-        onOpenImage={onOpenImage}
-      />
+      {citedBy.length > 0 ? (
+        <Text style={styles.cited}>
+          <Text style={{ color: palette.textMuted }}>Cité par </Text>
+          {citedBy.map((id, index) => (
+            <Text
+              key={id}
+              suppressHighlighting
+              onPress={() => onQuote({ kind: "post", postId: id })}
+              style={{ color: palette.quoteLink }}
+            >
+              {index > 0 ? " " : ""}
+              {`>>${id}`}
+            </Text>
+          ))}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -85,4 +95,5 @@ const styles = StyleSheet.create({
   time: { fontSize: 12 },
   no: { fontSize: 12, fontVariant: ["tabular-nums"] },
   subject: { fontSize: 16, fontWeight: "700" },
+  cited: { fontSize: 14, lineHeight: 20 },
 });

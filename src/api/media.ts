@@ -57,3 +57,12 @@ export function thumbnailFor(board: string, post: Post): string | null {
   if (media.spoiler) return null;
   return media.thumbUrl;
 }
+
+/** Image pleine pour les aperçus. La vidéo n'a pas de fichier fixe : on garde la miniature. */
+export function previewFor(board: string, post: Post): string | null {
+  const media = mediaForPost(board, post);
+  if (media.kind === "none" || media.kind === "deleted" || media.kind === "unknown") return null;
+  if (media.spoiler) return null;
+  if (media.kind === "image") return media.fullUrl;
+  return media.thumbUrl;
+}

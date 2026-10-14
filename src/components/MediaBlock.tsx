@@ -1,10 +1,8 @@
 import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { mediaForPost, type VisualMedia } from "@/src/api/media";
-import { WebmPlayer } from "@/src/components/WebmPlayer";
 import { formatBytes } from "@/src/lib/format";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { Post } from "@/src/types/fourchan";
@@ -15,38 +13,7 @@ function mediaHeight(media: VisualMedia, screenWidth: number): number {
   return Math.max(140, Math.min(460, frame * (media.height / media.width)));
 }
 
-function Mp4Player({ uri, height }: { uri: string; height: number }) {
-  const player = useVideoPlayer(uri, (instance) => {
-    instance.loop = false;
-  });
-
-  return (
-    <VideoView
-      player={player}
-      style={{ width: "100%", height, backgroundColor: "#000" }}
-      nativeControls
-      contentFit="contain"
-      fullscreenOptions={{ enable: true }}
-      allowsPictureInPicture={false}
-    />
-  );
-}
-
-export function MediaBlock({
-  board,
-  post,
-  playing,
-  onPlay,
-  onStop,
-  onOpenImage,
-}: {
-  board: string;
-  post: Post;
-  playing: boolean;
-  onPlay: () => void;
-  onStop: () => void;
-  onOpenImage: (uri: string) => void;
-}) {
+export function MediaBlock({ board, post, onOpen }: { board: string; post: Post; onOpen: () => void }) {
   const { palette } = useAppTheme();
   const { width } = useWindowDimensions();
   const media = mediaForPost(board, post);
@@ -62,9 +29,14 @@ export function MediaBlock({
   }
 
   const height = mediaHeight(media, width);
-  const meta = [media.ext.replace(".", "").toUpperCase(), media.width && media.height ? `${media.width}×${media.height}` : null, formatBytes(media.bytes)]
+  const meta = [
+    media.ext.replace(".", "").toUpperCase(),
+    media.width && media.height ? `${media.width}×${media.height}` : null,
+    formatBytes(media.bytes),
+  ]
     .filter(Boolean)
     .join(" · ");
+  const video = media.kind === "mp4" || media.kind === "webm";
 
   if (media.spoiler && !revealed) {
     return (
@@ -81,58 +53,25 @@ export function MediaBlock({
 
   return (
     <View style={styles.block}>
-      {media.kind === "image" && !failed ? (
-        <Pressable accessibilityRole="button" onPress={() => onOpenImage(media.fullUrl)}>
+      {failed ? (
+        <Text style={{ color: palette.textMuted }}>Image indisponible.</Text>
+      ) : (
+        <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir dans la galerie" onPress={onOpen}>
           <Image
-            source={{ uri: media.ext === ".gif" ? media.fullUrl : media.thumbUrl }}
-            recyclingKey={media.thumbUrl}
-            contentFit="contain"
-            style={{ width: "100%", height, backgroundColor: palette.surfaceAlt }}
+            source={{ uri: video ? media.thumbUrl : media.fullUrl }}
+            recyclingKey={video ? media.thumbUrl : media.fullUrl}
+            contentFit={video ? "cover" : "contain"}
+            style={{ width: "100%", height, backgroundColor: video ? "#000" : palette.surfaceAlt }}
             onError={() => setFailed(true)}
           />
+          {video ? (
+            <View style={styles.play} pointerEvents="none">
+              <Text style={styles.playText}>Lire</Text>
+            </View>
+          ) : null}
         </Pressable>
-      ) : null}
-
-      {media.kind === "mp4" && playing ? <Mp4Player uri={media.fullUrl} height={height} /> : null}
-
-      {media.kind === "mp4" && !playing ? (
-        <Pressable accessibilityRole="button" onPress={onPlay}>
-          <Image
-            source={{ uri: media.thumbUrl }}
-            contentFit="cover"
-            style={{ width: "100%", height, backgroundColor: "#000" }}
-          />
-          <View style={styles.play}>
-            <Text style={styles.playText}>Lire la vidéo</Text>
-          </View>
-        </Pressable>
-      ) : null}
-
-      {media.kind === "webm" && playing ? <WebmPlayer uri={media.fullUrl} height={height} /> : null}
-
-      {media.kind === "webm" && !playing ? (
-        <Pressable accessibilityRole="button" onPress={onPlay}>
-          <Image
-            source={{ uri: media.thumbUrl }}
-            contentFit="cover"
-            style={{ width: "100%", height, backgroundColor: "#000" }}
-          />
-          <View style={styles.play}>
-            <Text style={styles.playText}>Lire la vidéo</Text>
-          </View>
-        </Pressable>
-      ) : null}
-
-      {failed ? <Text style={{ color: palette.textMuted }}>Image indisponible.</Text> : null}
-
-      <View style={styles.metaRow}>
-        <Text style={{ color: palette.textMuted, fontSize: 12 }}>{meta}</Text>
-        {playing ? (
-          <Pressable accessibilityRole="button" onPress={onStop} hitSlop={8}>
-            <Text style={{ color: palette.text, fontWeight: "700" }}>Fermer la vidéo</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      )}
+      <Text style={{ color: palette.textMuted, fontSize: 12 }}>{meta}</Text>
     </View>
   );
 }
@@ -160,5 +99,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
 });

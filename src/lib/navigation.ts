@@ -18,3 +18,11 @@ export function threadHref(board: string, threadId: number, focus?: number): Hre
     },
   } as Href;
 }
+
+export function galleryHref(): Href {
+  return "/gallery" as Href;
+}
+
+export function quotesHref(): Href {
+  return "/quotes" as Href;
+}

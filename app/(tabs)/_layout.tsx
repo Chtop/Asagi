@@ -51,6 +51,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="saved"
+        options={{
+          title: "Médias",
+          tabBarIcon: ({ color }) => <TabIcon ios="photo" glyph="▣" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="history"
         options={{
           title: "Historique",

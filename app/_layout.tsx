@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 
 import { LibraryProvider, useLibrary } from "@/src/state/LibraryContext";
+import { SavedMediaProvider, useSavedMedia } from "@/src/state/SavedMediaContext";
 import { SettingsProvider, useAppTheme } from "@/src/state/SettingsContext";
 
 export { ErrorBoundary } from "expo-router";
@@ -14,7 +15,9 @@ export default function RootLayout() {
   return (
     <SettingsProvider>
       <LibraryProvider>
-        <RootGate />
+        <SavedMediaProvider>
+          <RootGate />
+        </SavedMediaProvider>
       </LibraryProvider>
     </SettingsProvider>
   );
@@ -23,7 +26,8 @@ export default function RootLayout() {
 function RootGate() {
   const { ready: settingsReady, palette, dark } = useAppTheme();
   const { ready: libraryReady } = useLibrary();
-  const ready = settingsReady && libraryReady;
+  const { ready: savedReady } = useSavedMedia();
+  const ready = settingsReady && libraryReady && savedReady;
 
   useEffect(() => {
     if (!ready) return;
@@ -67,6 +71,24 @@ function RootGate() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="gallery"
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            animation: "slide_from_right",
+            contentStyle: { backgroundColor: "#000" },
+          }}
+        />
+        <Stack.Screen
+          name="quotes"
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            animation: "slide_from_right",
+            contentStyle: { backgroundColor: palette.background },
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );

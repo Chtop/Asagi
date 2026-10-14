@@ -3,9 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   parseFavorites,
   parseHistory,
+  parseSavedMedia,
   parseSettings,
   type FavoriteThread,
   type HistoryEntry,
+  type SavedMedia,
   type Settings,
 } from "@/src/storage/model";
 
@@ -13,6 +15,7 @@ const KEYS = {
   favorites: "asagi.favorites.v1",
   history: "asagi.history.v1",
   settings: "asagi.settings.v1",
+  savedMedia: "asagi.saved-media.v1",
 } as const;
 
 async function readRaw(key: string): Promise<unknown> {
@@ -55,4 +58,16 @@ export async function loadSettings(): Promise<Settings> {
 
 export async function saveSettings(settings: Settings): Promise<void> {
   await AsyncStorage.setItem(KEYS.settings, JSON.stringify(settings));
+}
+
+export async function loadSavedMedia(): Promise<SavedMedia[]> {
+  try {
+    return parseSavedMedia(await readRaw(KEYS.savedMedia));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSavedMedia(items: SavedMedia[]): Promise<void> {
+  await AsyncStorage.setItem(KEYS.savedMedia, JSON.stringify(items));
 }

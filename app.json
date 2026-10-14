@@ -54,6 +54,15 @@
         {
           "localNetworkPermission": "Le lecteur vidéo peut chercher des appareils sur le réseau local."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Asagi enregistre les images et les vidéos dans ta photothèque.",
+          "savePhotosPermission": "Asagi enregistre les images et les vidéos dans ta photothèque.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": ["photo", "video"]
+        }
       ]
     ],
     "experiments": {

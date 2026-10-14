@@ -30,15 +30,38 @@ export type HistoryEntry = ThreadSnapshot & {
 
 export type ThemePreference = "system" | "dark" | "light";
 export type BoardFilter = "all" | "sfw" | "nsfw";
+export type CatalogSort = "bump" | "newest" | "oldest" | "replies" | "images";
+export type SortDirection = "asc" | "desc";
+export type CatalogView = "grid" | "list";
 
 export type Settings = {
   theme: ThemePreference;
   boardFilter: BoardFilter;
+  catalogSort: CatalogSort;
+  catalogSortDirection: SortDirection;
+  catalogView: CatalogView;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   boardFilter: "all",
+  catalogSort: "bump",
+  catalogSortDirection: "desc",
+  catalogView: "grid",
+};
+
+export type SavedMediaKind = "image" | "mp4" | "webm";
+
+export type SavedMedia = {
+  id: string;
+  filename: string;
+  originalName: string;
+  kind: SavedMediaKind;
+  board: string;
+  postNo: number;
+  sourceUrl: string;
+  savedAt: number;
+  bytes: number | null;
 };
 
 export function sameThread(left: { board: string; threadId: number }, right: { board: string; threadId: number }): boolean {
@@ -78,6 +101,8 @@ export function parseHistory(value: unknown): HistoryEntry[] {
   });
 }
 
+const SORTS: CatalogSort[] = ["bump", "newest", "oldest", "replies", "images"];
+
 export function parseSettings(value: unknown): Settings {
   if (!value || typeof value !== "object") return DEFAULT_SETTINGS;
   const raw = value as Partial<Settings>;
@@ -87,7 +112,31 @@ export function parseSettings(value: unknown): Settings {
     raw.boardFilter === "sfw" || raw.boardFilter === "nsfw" || raw.boardFilter === "all"
       ? raw.boardFilter
       : DEFAULT_SETTINGS.boardFilter;
-  return { theme, boardFilter };
+  const catalogSort = SORTS.includes(raw.catalogSort as CatalogSort)
+    ? (raw.catalogSort as CatalogSort)
+    : DEFAULT_SETTINGS.catalogSort;
+  const catalogSortDirection: SortDirection = raw.catalogSortDirection === "asc" ? "asc" : "desc";
+  const catalogView: CatalogView = raw.catalogView === "list" ? "list" : "grid";
+  return { theme, boardFilter, catalogSort, catalogSortDirection, catalogView };
+}
+
+export function parseSavedMedia(value: unknown): SavedMedia[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is SavedMedia => {
+    if (!item || typeof item !== "object") return false;
+    const media = item as SavedMedia;
+    return (
+      typeof media.id === "string" &&
+      typeof media.filename === "string" &&
+      typeof media.originalName === "string" &&
+      (media.kind === "image" || media.kind === "mp4" || media.kind === "webm") &&
+      typeof media.board === "string" &&
+      typeof media.postNo === "number" &&
+      typeof media.sourceUrl === "string" &&
+      typeof media.savedAt === "number" &&
+      (media.bytes === null || typeof media.bytes === "number")
+    );
+  });
 }
 
 export function toggleFavoriteList(current: FavoriteThread[], snapshot: ThreadSnapshot): FavoriteThread[] {
