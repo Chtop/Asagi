@@ -16,12 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   device-ipa:
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       CI: "1"
       EXPO_NO_TELEMETRY: "1"
@@ -262,10 +262,15 @@ jobs:
             exit 1
           fi
 
-          if plutil -extract UIBackgroundModes raw -o - "$APP/Info.plist" >/dev/null 2>&1; then
-            echo "UIBackgroundModes is set. A free provisioning profile will reject the install."
-            plutil -extract UIBackgroundModes xml1 -o - "$APP/Info.plist"
-            exit 1
+          # An empty array is what the video plugins write when background playback is off.
+          # Only a real mode (audio, fetch, ...) is rejected by a free provisioning profile.
+          if plutil -extract UIBackgroundModes json -o - "$APP/Info.plist" >/dev/null 2>&1; then
+            MODES=$(plutil -extract UIBackgroundModes json -o - "$APP/Info.plist")
+            if [ "$MODES" != "[]" ]; then
+              echo "UIBackgroundModes is set. A free provisioning profile will reject the install."
+              echo "$MODES"
+              exit 1
+            fi
           fi
 
           echo "CFBundleIdentifier=$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")"
@@ -283,10 +288,40 @@ jobs:
           esac
           echo "IPA=$IPA" >> "$GITHUB_ENV"
 
-      - name: Upload the IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: sidestore-ipa
-          path: ${{ env.SCHEME }}-unsigned.ipa
-          if-no-files-found: error
-          retention-days: 14
+      - name: Publish Asagi-unsigned.ipa
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Actions artifacts are always downloaded as a zip. A release asset
+          # is the IPA file itself, under a stable name.
+          PUBLISHED="$GITHUB_WORKSPACE/Asagi-unsigned.ipa"
+          if [ "$IPA" != "$PUBLISHED" ]; then
+            cp "$IPA" "$PUBLISHED"
+          fi
+          test -f "$PUBLISHED"
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          cat > "$NOTES" << EOF
+          IPA iPhone non signé.
+
+          Build ${GITHUB_RUN_NUMBER}.
+          Commit ${GITHUB_SHA}.
+
+          Le fichier à installer est Asagi-unsigned.ipa. SideStore le signe avec un compte Apple gratuit.
+          EOF
+          if gh release view sidestore >/dev/null 2>&1; then
+            gh release delete sidestore --yes --cleanup-tag
+          fi
+          gh release create sidestore \
+            --target "$GITHUB_SHA" \
+            --title "Asagi pour SideStore" \
+            --notes-file "$NOTES" \
+            --prerelease \
+            "$PUBLISHED"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/sidestore/Asagi-unsigned.ipa"
+          {
+            echo "### Asagi-unsigned.ipa"
+            echo ""
+            echo "[${URL}](${URL})"
+          } >> "$GITHUB_STEP_SUMMARY"

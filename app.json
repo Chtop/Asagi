@@ -48,6 +48,12 @@
           "supportsBackgroundPlayback": false,
           "supportsPictureInPicture": false
         }
+      ],
+      [
+        "expo-libvlc-player",
+        {
+          "localNetworkPermission": "Le lecteur vidéo peut chercher des appareils sur le réseau local."
+        }
       ]
     ],
     "experiments": {

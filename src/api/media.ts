@@ -3,9 +3,8 @@ import { isBoardCode } from "@/src/api/ids";
 import type { Post } from "@/src/types/fourchan";
 
 /**
- * iOS (AVPlayer, donc expo-video) lit le MP4.
- * Le WebM / VP8-VP9, format le plus courant des vidéos postées, n'est pas décodé.
- * On affiche la miniature et on le dit, plutôt qu'un lecteur qui échoue.
+ * Le MP4 passe par AVPlayer (expo-video).
+ * Le WebM, format le plus courant, passe par LibVLC : AVPlayer ne le décode pas.
  */
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp"]);

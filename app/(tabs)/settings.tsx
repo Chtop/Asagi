@@ -69,7 +69,7 @@ export default function SettingsScreen() {
           {APP_NAME} {version} lit seulement l'API publique a.4cdn.org. Rien n'est envoyé à un serveur à nous. Les favoris
           et l'historique restent dans AsyncStorage, sur l'appareil. L'historique retient le dernier message affiché :
           rouvrir un thread y revient. Effacer l'historique efface ces positions. Les images viennent de i.4cdn.org. Les
-          vidéos MP4 sont lues dans l'app. Le WebM n'est pas décodé par iOS : seule la miniature est affichée.
+          MP4 passent par le lecteur iOS. Les WebM, le format le plus courant, passent par le lecteur embarqué.
         </Text>
       </ScrollView>
     </Screen>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { mediaForPost, type VisualMedia } from "@/src/api/media";
+import { WebmPlayer } from "@/src/components/WebmPlayer";
 import { formatBytes } from "@/src/lib/format";
 import { useAppTheme } from "@/src/state/SettingsContext";
 import type { Post } from "@/src/types/fourchan";
@@ -107,17 +108,19 @@ export function MediaBlock({
         </Pressable>
       ) : null}
 
-      {media.kind === "webm" ? (
-        <View>
+      {media.kind === "webm" && playing ? <WebmPlayer uri={media.fullUrl} height={height} /> : null}
+
+      {media.kind === "webm" && !playing ? (
+        <Pressable accessibilityRole="button" onPress={onPlay}>
           <Image
             source={{ uri: media.thumbUrl }}
             contentFit="cover"
             style={{ width: "100%", height, backgroundColor: "#000" }}
           />
-          <Text style={[styles.note, { color: palette.textMuted }]}>
-            WebM non lu par iOS. La miniature est affichée, le fichier n'est pas décodé sur l'iPhone.
-          </Text>
-        </View>
+          <View style={styles.play}>
+            <Text style={styles.playText}>Lire la vidéo</Text>
+          </View>
+        </Pressable>
       ) : null}
 
       {failed ? <Text style={{ color: palette.textMuted }}>Image indisponible.</Text> : null}
@@ -157,6 +160,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  note: { fontSize: 13, lineHeight: 18 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
 });
