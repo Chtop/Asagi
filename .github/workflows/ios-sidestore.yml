@@ -10,6 +10,9 @@ name: Build SideStore IPA
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 concurrency:
   group: ios-sidestore

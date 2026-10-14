@@ -35,7 +35,7 @@ npm run typecheck
 
 The **Build SideStore IPA** workflow builds an unsigned iPhone IPA on a macOS runner. SideStore signs it with a free Apple account. No local Mac and no Apple Developer subscription are required.
 
-1. Open the **Actions** tab, workflow **Build SideStore IPA**, **Run workflow**.
+1. A push or merge to `master` starts the build. It can also be started by hand: **Actions** tab, workflow **Build SideStore IPA**, **Run workflow**. A newer push cancels the build already running.
 2. Download [Asagi-unsigned.ipa](https://github.com/Chtop/Asagi/releases/download/sidestore/Asagi-unsigned.ipa). That is the IPA itself, not a zip. The same link is in the run summary. Each successful build replaces the [sidestore](https://github.com/Chtop/Asagi/releases/tag/sidestore) release.
 3. Install that file with SideStore.
 
